@@ -11,6 +11,8 @@ Login Succeeded
 $ docker push lyudmilalala/go_http_server:1.0.0
 ```
 
+<img width="975" alt="image" src="https://github.com/lyudmilalala/k8s_learn/assets/32922504/825091a9-b758-4479-835b-20d958f6fbc4">
+
 3. Run a docker container holding the golang http server
 ```
 $ docker run -itd --name go-test -p 5080:5080 lyudmilalala/go_http_server:1.0.0
