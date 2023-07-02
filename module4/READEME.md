@@ -92,7 +92,6 @@ NAME              DESIRED   CURRENT   READY   AGE
 envoy-fb5d77cc9   3         3         3       13m
 ```
 
-
 如果直接删除`deployment`里的`pod`或`ReplicaSet`，k8s会自动重新添加
 
 ```
