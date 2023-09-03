@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prod-config
+  namespace: go-func
+data:
+  APP_LOG_LEVEL: WARNING
+  VERSION: 1.2.0
+  APP_LIVENESS_TEST: "Y"

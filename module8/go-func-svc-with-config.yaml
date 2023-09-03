@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-func-deploy
+  namespace: go-func
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go-func-app
+  template:
+    metadata:
+      labels:
+        app: go-func-app
+    spec:
+      containers:
+      - name: go-func-pod
+        image: lyudmilalala/go_http_server:1.1.0
+        env:
+        - name: APP_PORT
+          value: "5090"
+        envFrom:
+        - configMapRef:
+            name: dev-config
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "1Mi"
+          limits:
+            cpu: "100m"
+            memory: "1Mi"
+        ports:
+        - containerPort: 5090
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-func-svc
+  namespace: go-func
+spec:
+  type: NodePort
+  ports:
+  - port: 5090
+    protocol: TCP
+    nodePort: 30090
+  selector:
+    app: go-func-app
