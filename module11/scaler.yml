@@ -1,0 +1,30 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: as-test-hpa
+  namespace: as-test-ns
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: as-test-deploy
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          # type: Utilization
+          # averageUtilization: 80
+          type: AverageValue
+          averageValue: 60Mi
+  behavior:
+    scaleDown:
+      policies:
+      - type: Pods
+        value: 3
+        periodSeconds: 30
+      # - type: Percent
+      #   value: 10
+      #   periodSeconds: 30
