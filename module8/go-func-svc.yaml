@@ -15,21 +15,23 @@ spec:
     spec:
       containers:
       - name: go-func-pod
-        image: lyudmilalala/go_http_server:1.1.0
+        image: lyudmilalala/go_http_server:1.2.0
         env:
         - name: APP_PORT
           value: "5080"
         - name: APP_LOG_LEVEL
           value: "INFO"
         - name: VERSION
-          value: "1.1.0"
+          value: "1.2.0"
+        - name: APP_LIVENESS_TEST
+          value: "N"
         resources:
           requests:
             cpu: "100m"
-            memory: "1Mi"
+            memory: "10Mi"
           limits:
             cpu: "100m"
-            memory: "1Mi"
+            memory: "10Mi"
         ports:
         - containerPort: 5080
           protocol: TCP

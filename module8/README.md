@@ -64,8 +64,119 @@ HTTP/1.1 200 OK
 Accept: */*
 App: mila-app
 User-Agent: curl/7.54.0
-Version: 1.1.0
+Version: 1.2.0
 Date: Sun, 03 Sep 2023 09:59:45 GMT
+Content-Length: 12
+Content-Type: text/plain; charset=utf-8
+
+hello [Tom]
+```
+
+通过CoreDNS域名访问
+
+### 通过CoreDNS域名访问
+
+创建toolbox容器
+
+```
+$ kubectl apply -f toolbox.yml 
+deployment.apps/toolbox-deploy created
+```
+
+进入toolbox容器
+
+```
+$ kubectl exec -it toolbox-deploy-cdd9c9655-n5rr9 bash -n go-func
+```
+
+查看`resolv.conf`
+
+```
+$ cat /etc/resolv.conf 
+nameserver 10.96.0.10
+search go-func.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+在容器中可以使用域名请求
+
+```
+$ curl -i http://go-func-svc.go-func.svc.cluster.local:5080/greeting?user=Tom
+HTTP/1.1 200 OK
+Accept: */*
+App: mila-app
+User-Agent: curl/7.81.0
+Version: 1.2.0
+Date: Tue, 05 Sep 2023 15:18:42 GMT
+Content-Length: 12
+Content-Type: text/plain; charset=utf-8
+
+hello [Tom]
+```
+
+短名也可正常工作
+
+```
+curl -i http://go-func-svc.go-func:5080/greeting?user=Tom
+HTTP/1.1 200 OK
+Accept: */*
+App: mila-app
+User-Agent: curl/7.81.0
+Version: 1.2.0
+Date: Tue, 05 Sep 2023 17:28:53 GMT
+Content-Length: 12
+Content-Type: text/plain; charset=utf-8
+
+hello [Tom]
+```
+
+### 通过Ingress Gateway访问
+
+以下步骤在`ingress`目录下进行
+
+创建tls证书并配置成secret
+
+```
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=cncamp.com/O=cncamp" -addext "subjectAltName = DNS:cncamp.com"
+Generating a RSA private key
+..............+++++
+................................+++++
+writing new private key to 'tls.key'
+-----
+$ ls
+ingress.yaml			tls.crt
+nginx-ingress-deployment.yaml	tls.key
+$ kubectl create secret tls cncamp-tls --cert=./tls.crt --key=./tls.key -n go-func
+secret/cncamp-tls created
+$ kubectl get secret -n go-func
+NAME                  TYPE                                  DATA   AGE
+cncamp-tls            kubernetes.io/tls                     2      11s
+default-token-xk92l   kubernetes.io/service-account-token   3      2d8h
+```
+
+应用ingress gateway
+
+```
+$ kubectl apply -f ingress.yaml 
+Error from server (InternalError): error when creating "ingress.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1/ingresses?timeout=10s": dial tcp 10.104.62.177:443: connect: connection refused
+```
+
+访问域名
+
+```
+$ curl -H "Host: cncamp.com" https://10.107.196.184/healthz -ivk
+*   Trying 10.107.196.184...
+* TCP_NODELAY set
+```
+
+```
+$ curl -H "Host: cncamp.com" https://10.107.196.184/greeting?user=Tom -ivk
+HTTP/1.1 200 OK
+Accept: */*
+App: mila-app
+User-Agent: curl/7.54.0
+Version: 1.2.0
+Date: Tue, 05 Sep 2023 15:27:22 GMT
 Content-Length: 12
 Content-Type: text/plain; charset=utf-8
 

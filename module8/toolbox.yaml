@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toolbox-deploy
+  namespace: go-func
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: toolbox
+  template:
+    metadata:
+      labels:
+        app: toolbox
+        access: "true"
+    spec:
+      containers:
+        - name: toolbox
+          image: ubuntu:22.04
+          command:
+            - tail
+            - -f
+            - /dev/null
