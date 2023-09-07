@@ -1,0 +1,18 @@
+apiVersion: custompodautoscaler.com/v1
+kind: CustomPodAutoscaler
+metadata:
+  name: cpa-demo
+spec:
+  template:
+    spec:
+      containers:
+      - name: cpa-demo-pod
+        image: lyudmilalala/cpa-scaler-img:1.0.0
+        imagePullPolicy: IfNotPresent
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: as-test-deploy
+  config:
+    - name: interval
+      value: "20000"

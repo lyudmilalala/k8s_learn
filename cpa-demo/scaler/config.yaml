@@ -1,0 +1,17 @@
+evaluate:
+  type: "shell"
+  timeout: 2500
+  shell:
+    entrypoint: "python"
+    logStderr: true
+    command:
+      - "/evaluate.py"
+metric:
+  type: "shell"
+  timeout: 2500
+  shell:
+    entrypoint: "python"
+    logStderr: true
+    command:
+      - "/metric.py"
+runMode: "per-resource"
