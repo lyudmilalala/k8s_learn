@@ -20,4 +20,4 @@ spec:
               service:
                 name: go-func-svc
                 port:
-                  number: 5080
+                  number: 30090

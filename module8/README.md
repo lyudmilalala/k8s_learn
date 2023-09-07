@@ -134,6 +134,11 @@ hello [Tom]
 
 以下步骤在`ingress`目录下进行
 
+创建Install ingress controller
+```
+kubectl create -f nginx-ingress-deployment.yaml
+```
+
 创建tls证书并配置成secret
 
 ```
@@ -154,11 +159,26 @@ cncamp-tls            kubernetes.io/tls                     2      11s
 default-token-xk92l   kubernetes.io/service-account-token   3      2d8h
 ```
 
-应用ingress gateway
+应用ingress gateway，发生报错
 
 ```
 $ kubectl apply -f ingress.yaml 
 Error from server (InternalError): error when creating "ingress.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1/ingresses?timeout=10s": dial tcp 10.104.62.177:443: connect: connection refused
+```
+
+根据网上的教程删除admission后，成功创建
+
+```
+$ kubectl get ValidatingWebhookConfiguration
+NAME                           WEBHOOKS   AGE
+ingress-nginx-admission        1          46h
+$ kubectl delete -A ValidatingWebhookConfiguration ingress-nginx-admission
+validatingwebhookconfiguration.admissionregistration.k8s.io "ingress-nginx-admission" deleted
+$ kubectl apply -f ingress.yaml 
+ingress.networking.k8s.io/gateway created
+$ kubectl get ingress -n go-func
+NAME      CLASS    HOSTS        ADDRESS   PORTS     AGE
+gateway   <none>   cncamp.com             80, 443   25s
 ```
 
 访问域名
@@ -171,16 +191,6 @@ $ curl -H "Host: cncamp.com" https://10.107.196.184/healthz -ivk
 
 ```
 $ curl -H "Host: cncamp.com" https://10.107.196.184/greeting?user=Tom -ivk
-HTTP/1.1 200 OK
-Accept: */*
-App: mila-app
-User-Agent: curl/7.54.0
-Version: 1.2.0
-Date: Tue, 05 Sep 2023 15:27:22 GMT
-Content-Length: 12
-Content-Type: text/plain; charset=utf-8
-
-hello [Tom]
 ```
 
 ### 添加不同环境的配置参数
