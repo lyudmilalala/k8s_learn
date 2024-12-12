@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import os
 import logging
-import random
 from concurrent.futures import ThreadPoolExecutor
 import time
 
@@ -18,17 +17,15 @@ namespace = os.getenv('POD_NAMESPACE')
 pod_name = os.getenv('POD_NAME')
 
 def async_task(task_name, time_cost):
+    global status
     logging.info(f"Start task = {task_name}")
+    status = DEVICE_STATUS_BUSY
     time.sleep(time_cost)  
+    status = DEVICE_STATUS_IDLE
     logging.info(f"End task = {task_name}")
 
-@app.route('/getRandomNum', methods=['GET'])
-def getRandomNum():
-    value = random.randint(1, 10)
-    return str(value)
-
 @app.route('/processTask', methods=['POST'])
-def updateStatus():
+def processTask():
     global status
     data = request.get_json()
     task_name = data['name']
@@ -36,6 +33,13 @@ def updateStatus():
     executor.submit(async_task, task_name, time_cost)
     queue_size = executor._work_queue.qsize()  
     return jsonify({"status": 200, "msg": f"Pod {pod_name} starts processing task = {task_name}", "pod_name": pod_name, "current_queue_size": queue_size})
+
+@app.route('/status', methods=['GET'])
+def get_status():
+    global status
+    msg = f'Status = {status}'
+    logging.info(msg)
+    return jsonify({"status": 200, "msg": status, "pod_name": pod_name})
 
 @app.route('/readinessCheck', methods=['GET'])
 def readinessCheck():

@@ -53,6 +53,8 @@ my_username:my_psw
 
 Clean up the `Secret` config file, change its namespace, and apply it. Below is an example config file.
 
+A `Secret` can only used by resources in the same namespace with it. Each `Secret` can only be used by one namespace. 
+
 ```yaml
 apiVersion: v1
 data:

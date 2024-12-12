@@ -6,14 +6,13 @@
 
 It can be got by pulling image `busybox:1.36`.  
 
-### Build a deployment and a service
+### Build a deployment
 
 A `deployment` is a cluster of duplicated pods.
 
-We can create a `deployment` with the following script.
+We can create a `deployment` with the following script `busybox-deployment.yaml`.
 
 ```yaml
-
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -45,44 +44,24 @@ spec:
         command: ["/bin/sh", "-c", "while true; do echo 'hello in loop'; sleep 10;done"]
 ```
 
-Then you can visit the `localhost:30050` to call the functions on pod port 5000.
+Then you can see a cluster of pods created in the k8s cluster.
 
 ### A simple Flask app
 
 We can create a simple flask server for testing http api running in the scalable cluster. Later, we will add more api into the server.
 
-The script of server
+The script of server is in `app.py`
 
 ```python
-from flask import Flask, request, jsonify
-import os
-import logging
-import random
-
+from flask import Flask, request, json
 app = Flask(__name__)
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-status = "AVAILABLE" # Global variable to hold the status
-
-@app.route('/getRandomNum', methods=['GET'])
-def getRandomNum():
-    value = random.randint(1, 10)
-    return str(value)
-
-@app.route('/updateStatus', methods=['POST'])
-def updateStatus():
+@app.route('/sum', methods=['POST'])
+def sum():
     global status
     data = request.get_json()
-    status = data['status']
-    return jsonify({"status": 200, "msg": f"Update status to {status}", "pod_name": pod_name})
-
-@app.route('/status', methods=['GET'])
-def get_status():
-    global status
-    msg = f'status on pod {pod_name} = {status}'
-    logging.info(msg)
-    return jsonify({"status": 200, "msg": status, "pod_name": pod_name})
+    sum = int(data['a']) + int(data['b'])
+    return json.dumps({"status": 200, "msg": f"sum = {sum}"})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080, debug=True)
@@ -101,7 +80,7 @@ WORKDIR /app
 ADD app.py /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir Flask==2.0.2
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir Flask==2.0.2 requests==2.26.0 Werkzeug==2.0.2
 
 # Make port 5000 available to the world outside this container
 EXPOSE 8080
@@ -110,54 +89,67 @@ EXPOSE 8080
 CMD ["python", "app.py"]
 ```
 
-Build the docker image by `docker build -t <image_name>:<image_tag>`, here we use `flask-test-img:1.0.0` as the image name and tag.
+Build the docker image by `docker build -t <image_name>:<image_tag> .`, here we use `crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:1.0.0` as the image name and tag (it is a image in the aliyun person image repository).
+
+You can run a docker server at local for debugging by 
+
+```shell
+docker run -itd --name flask-app -p 18080:8080 crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:1.0.0
+```
+
+While the server is running, make a request as 
+
+```shell
+curl -X POST 'http://localhost:18080/sum' --header 'Content-Type: application/json' --data-raw '{"a": 7,"b": 2}'
+```
+
+will give a result similar to `{"msg": "sum = 19", "status": 200}`.
+
+Push your new docker image after ensuring everything is correct by
+
+```shell
+docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:1.0.0
+```
 
 ### Build a deployment and a service
 
 A is how you expose the ports of pods in the `deployment` cluster to external users. 
 
-We can create a `deployment` and a `service` of the Flask server with the following script.
+We can create a `deployment` and a `service` of the Flask server with the following script `deployment.yaml`.
 
 ```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flask-ns
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: as-test-deploy
-  namespace: as-test-ns
+  name: flask-deploy
+  namespace: flask-ns
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
-      app: as-test-app
+      app: flask-app
   template:
     metadata:
       labels:
-        app: as-test-app
-      annotations:
-        controller.kubernetes.io/pod-deletion-cost: '1'
+        app: flask-app
     spec:
       containers:
-      - name: as-test-pod
-        image: flask-test-img:1.0.0
+      - name: flask-pod
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
-        env:
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-      
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: as-test-svc
-  namespace: as-test-ns
+  name: flask-svc
+  namespace: flask-ns
 spec:
   type: NodePort
   ports:
@@ -165,6 +157,21 @@ spec:
     protocol: TCP
     nodePort: 30050
   selector:
-    app: as-test-app
+    app: flask-app
 ```
 
+```shell
+$ kubectl apply -f deployment.yaml
+$ kubectl get pods -n flask-ns
+NAME                            READY   STATUS    RESTARTS   AGE
+flask-deploy-6f54b5cbff-7kq6j   1/1     Running   0          14s
+flask-deploy-6f54b5cbff-v5wzb   1/1     Running   0          14s
+flask-deploy-6f54b5cbff-xmglp   1/1     Running   0          14s
+```
+
+Make request to the ip address of your k8s master server (in our example, it is `47.119.148.12`) and the service port `30050`. It should be something similar to the following.
+
+```shell
+$ curl -X POST 'http://47.119.148.12:30050/sum' --header 'Content-Type: application/json' --data-raw '{"a": 7,"b": 15}'
+{"msg": "sum = 22", "status": 200}
+```

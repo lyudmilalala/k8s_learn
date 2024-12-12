@@ -180,3 +180,5 @@ spec:
 NOTICE: By default, a pod is not ready is always deleted before the ready pods, regardless of its pod deletion cost.
 
 ### 3.5 Priority
+
+An updated flask script with these new configurations is included in the directory.
