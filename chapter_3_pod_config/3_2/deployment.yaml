@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flask-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-deploy
+  namespace: flask-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+      - name: flask-pod
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:2.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: liveness-port
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /readinessCheck
+            port: liveness-port
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /livenessCheck
+            port: liveness-port
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /startCheck
+            port: liveness-port
+          failureThreshold: 10
+          periodSeconds: 5
+        env:
+        - name: APP_NAME
+          value: "Jerry-learning"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-svc
+  namespace: flask-ns
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    protocol: TCP
+    nodePort: 30050
+  selector:
+    app: flask-app
