@@ -13,11 +13,11 @@ metadata:
 spec:
   containers:
   - name: as-test-pod
-    image: flask-test-img:1.0.0
+    image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:2.0.0
     imagePullPolicy: IfNotPresent
     env:
-    - name: DEMO_GREETING
-      value: "Hello from the environment"
+    - name: APP_NAME
+      value: "Jerry-learning"
 ```
 
 Pod information can be exposed to the functions in container by the following way.
@@ -31,7 +31,7 @@ metadata:
 spec:
   containers:
   - name: as-test-pod
-    image: flask-test-img:1.0.0
+    image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:2.0.0
     imagePullPolicy: IfNotPresent
     env:
       - name: NODE_NAME
@@ -52,38 +52,35 @@ spec:
             fieldPath: status.podIP
 ```
 
-Then in code, you can get their value as below:
+Then in your code, you can get their value as below:
 
 ```python
-namespace = os.getenv('POD_NAMESPACE')
 pod_name = os.getenv('POD_NAME')
 ```
 
-### 3.2 Resource Limit
+Update our flask http response by these environment variables.
 
-The CPU and memory required by a pod can be set in its config file as:
+```python
+import os
+pod_name = os.getenv('POD_NAME')
+app_name = os.getenv('APP_NAME')
 
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: as-test-pod
-  namespace: as-test-ns
-spec:
-  containers:
-  - name: as-test-pod
-    image: flask-test-img:1.0.0
-    imagePullPolicy: IfNotPresent
-    resources:
-      requests:
-        cpu: "100m"
-        memory: "100Mi"
-      limits:
-        cpu: "100m"
-        memory: "200Mi"
+@app.route('/sum', methods=['POST'])
+def sum():
+    global status
+    data = request.get_json()
+    sum = int(data['a']) + int(data['b'])
+    return json.dumps({"status": 200, "msg": f"[{app_name}-{pod_name}] sum = {sum}"})
 ```
 
-### 3.3 Liveness, Readiness and Startup Probe
+And now we can distinguish the responser of each request. Rebuild the docker image and reapply the `deployment.yaml` file in k8s. You will get the following response at this time.
+
+```shell
+$ curl -X POST 'http://47.119.148.12:30050/sum' --header 'Content-Type: application/json' --data-raw '{"a": 7,"b": 15}'
+{"msg": "[Jerry-learning-flask-deploy-c4948b89f-6htc2] sum = 22", "status": 200}
+```
+
+### 3.2 Liveness, Readiness and Startup Probe
 
 A liveness probe can determine whether a pod requires to be restarted.
 
@@ -93,7 +90,7 @@ A startup probes is used to check when a container application has started. If s
 
 We can set up health check and readiness probe as a shell script or an api in the http server. 
 
-Sample code for using shell command as a liveness probe. It use the file status of `/tmp/healthy`
+Sample code for using shell command as a liveness probe. It use the file status of `/tmp/healthy`. After deleting the file, the pod will become unhealthy.
 
 ```yaml
 apiVersion: v1
@@ -154,31 +151,82 @@ def readinessCheck():
         return 'pod is available', 200
 ```
 
-### 3.4 Deletion cost
+In subdirectory `3_2`, we update the flask server by adding a liveness check, a readiness check, and a start up probe check interface in it.
 
-A deployment annotation. Pod with lower deletion cost will be deleted first.
+For the liveness check, simply check if the interface can be visited.
+
+For the start probe check, we simulate an asynchronous application initialization process. It simulates the situation where we must load data from databases or file storages before starting the server. Only after all data are loaded, the start up probe returns true. In this case, the pods should turn to ready later than before, as it takes 6s to pass the start up probe.
+
+For the readiness part, we simulate an asynchronous task execution process. We set the task running time cost by an input parameter. When a task is running, turn the pod to not ready to avoid extra task being sent to this pod.
+
+After sending a task to the request, the pod received the task will be not ready very soon, and turn back to ready after a while, 20s in this case.
+
+```shell
+$ curl -X POST 'http://47.119.148.12:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1","time_cost": 20}'
+{"current_queue_size": 0, "msg": "Pod flask-deploy-7b69c565c-ckq6m starts processing task = task1", "pod_name": "flask-deploy-7b69c565c-ckq6m", "status": 200}
+$ kubectl get pods -n flask-ns
+NAME                           READY   STATUS    RESTARTS   AGE
+flask-deploy-7b69c565c-5gm59   1/1     Running   0          83s
+flask-deploy-7b69c565c-7ccbc   1/1     Running   0          52s
+flask-deploy-7b69c565c-ckq6m   0/1     Running   0          68s
+```
+
+If you grab the status of the server running the task (you may try multiple times to approach it, as requests are forwarded to each pod by equal chance), you will see `BUSY` instead of `IDLE`.
+
+```shell
+$ curl 'http://47.119.148.12:30050/status' 
+{"msg": "BUSY", "pod_name": "flask-deploy-84564c5dfc-tx5qq", "status": 200}
+```
+
+### 3.3 Deletion cost
+
+Pod with lower deletion cost will be deleted first.
 
 ```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: busybox-ns
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: as-test-deploy
-  namespace: as-test-ns
+  name: busybox-deploy-1
+  namespace: busybox-ns
+  labels:
+    app: busybox-app-1
 spec:
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
-      app: as-test-app
+      app: busybox-app-1
   template:
     metadata:
       labels:
-        app: as-test-app
-      annotations:
-        controller.kubernetes.io/pod-deletion-cost: '1'
+        app: busybox-app-1
+    spec:
+      containers:
+      - name: busybox
+        image: ubuntu:22.04
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c", "while true; do echo 'hello in loop'; sleep 10;done"]
 ```
 
 NOTICE: By default, a pod is not ready is always deleted before the ready pods, regardless of its pod deletion cost.
 
-### 3.5 Priority
+Show pods are started.
+
+```
+```
+
+Update the `controller.kubernetes.io/pod-deletion-cost` for each pod to different number.
+
+```shell
+kubectl annotate pod -n busybox-ns busybox-6f54b5cbff-7kq6j controller.kubernetes.io/pod-deletion-cost=10
+```
+
+### 3.4 Priority
 
 An updated flask script with these new configurations is included in the directory.
