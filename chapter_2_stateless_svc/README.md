@@ -39,9 +39,9 @@ spec:
     spec:
       containers:
       - name: busybox
-        image: busybox:1.36
+        image: ubuntu:22.04
         imagePullPolicy: IfNotPresent
-        command: ["/bin/sh", "-c", "while true; do echo 'hello in loop'; sleep 10;done"]
+        command: ["/bin/bash", "-c", "while true; do echo 'hello in loop'; sleep 10;done"]
 ```
 
 Then you can see a cluster of pods created in the k8s cluster.
@@ -115,7 +115,7 @@ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-lea
 
 A is how you expose the ports of pods in the `deployment` cluster to external users. 
 
-We can create a `deployment` and a `service` of the Flask server with the following script `deployment.yaml`.
+We can create a `deployment` and a `service` of the Flask server with the following script `flask-deployment.yaml`.
 
 ```yaml
 apiVersion: v1

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: as-test-deploy
+  namespace: as-test-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: as-test-app
+  template:
+    metadata:
+      labels:
+        app: as-test-app
+    spec:
+      containers:
+      - name: as-test-pod
+        image: lyudmilalala/as-test-img:1.0.0
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            memory: "75Mi"
+          limits:
+            memory: "75Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: as-test-svc
+  namespace: as-test-ns
+spec:
+  type: NodePort
+  ports:
+  - port: 5000
+    protocol: TCP
+    nodePort: 30050
+  selector:
+    app: as-test-app

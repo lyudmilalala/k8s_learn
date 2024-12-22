@@ -16,3 +16,6 @@ This is a guide for learning k8s, involving multiple different topics required f
 12. Operator
 13. FaaS Framework KNative
 
+### Docker image proxy
+
+If you fail to pull official images because of the GFW, please try to find the image [here](https://docker.aityp.com/). 
