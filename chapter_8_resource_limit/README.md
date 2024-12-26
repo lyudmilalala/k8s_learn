@@ -42,6 +42,27 @@ $ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-l
 $ kubectl apply -f flask-pod.yaml
 ```
 
+First test some requests that qualify our limit. Output will be similar to the following:
+
+```shell
+$ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1", "time_cost": 1,"mem_cost": 2}'
+{"current_queue_size": 0, "msg": "Pod dummy_pod starts processing task = task1", "pod_name": "dummy_pod", "status": 200}
+$ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task2", "time_cost": 1,"mem_cost": 2}'
+{"current_queue_size": 0, "msg": "Pod dummy_pod starts processing task = task1", "pod_name": "dummy_pod", "status": 200}
+```
+
+And if you check logs of the pod, you will see something like this:
+
+```shell
+192.168.65.1 - - [26/Dec/2024 23:35:11] "POST /sum HTTP/1.1" 200 -
+Start task = task1, time_cost = 1, mem_cost = 2
+192.168.65.1 - - [26/Dec/2024 23:37:19] "POST /run HTTP/1.1" 200 -
+End task = task1
+192.168.65.1 - - [26/Dec/2024 23:37:32] "POST /run HTTP/1.1" 200 -
+Start task = task2, time_cost = 1, mem_cost = 2
+End task = task2
+```
+
 Then send a request with `mem_cost` higher than the memory limits.
 
 ```shell
