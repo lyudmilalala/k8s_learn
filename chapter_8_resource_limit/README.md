@@ -1,38 +1,37 @@
-## 7. Resource Limit
+## 8. Resource Limit
 
-### 7.1 Pod Resource Limit
+### 8.1 Pod Resource Limit
 
 The CPU and memory required by a pod can be set in `flask-pod.yaml` file as:
 
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
-  name: flask-deploy
+  name: flask-pod
   namespace: flask-ns
+  labels:
+    app: flask-app
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: flask-app
-  template:
-    metadata:
-      labels:
-        app: flask-app
-    spec:
-      containers:
-      - name: flask-pod
-        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:3.0.0
-        resources:
-          requests:
-            cpu: "10m"
-            memory: "10Mi"
-          limits:
-            cpu: "100m"
-            memory: "20Mi"
+  containers:
+  - name: flask-pod
+    image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:3.0.0
+    imagePullPolicy: IfNotPresent
+    ports:
+    - name: liveness-port
+      containerPort: 8080
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "10Mi"
+      limits:
+        cpu: "1000m"
+        memory: "100Mi"
 ```
 
-Here the `requests.cpu` is the minimum cpu required for starting the pod successfully. `limits.cpu` is the maximum cpu this pod can occupied during executing.
+Here the `requests.cpu` is the minimum cpu required for starting the pod successfully. `limits.cpu` is the maximum cpu this pod can occupied during executing. `1000m` means 1000 millicore, which euqals to 1 cpu core.
+
+Similary, `requests.memory` is the minimum memory required for starting the pod successfully. `limits.memory` is the maximum memory this pod can occupied during executing, in bytes. Thus `100Mi` is 100MB.
 
 To test the resource limit configuration, we modify the `app.py` script to let our tasks to occupy a specific amount of memory. Then test, build, and deploy the service as we have done before.
 
@@ -46,32 +45,47 @@ First test some requests that qualify our limit. Output will be similar to the f
 
 ```shell
 $ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1", "time_cost": 1,"mem_cost": 2}'
-{"current_queue_size": 0, "msg": "Pod dummy_pod starts processing task = task1", "pod_name": "dummy_pod", "status": 200}
+{"current_queue_size": 0, "msg": "Pod flask-pod starts processing task = task1", "pod_name": "flask-pod", "status": 200}
 $ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task2", "time_cost": 1,"mem_cost": 2}'
-{"current_queue_size": 0, "msg": "Pod dummy_pod starts processing task = task1", "pod_name": "dummy_pod", "status": 200}
+{"current_queue_size": 1, "msg": "Pod flask-pod starts processing task = task2", "pod_name": "flask-pod", "status": 200}
+```
+
+Add python date log
+
+```
+def format_log_time():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 ```
 
 And if you check logs of the pod, you will see something like this:
 
 ```shell
-192.168.65.1 - - [26/Dec/2024 23:35:11] "POST /sum HTTP/1.1" 200 -
 Start task = task1, time_cost = 1, mem_cost = 2
-192.168.65.1 - - [26/Dec/2024 23:37:19] "POST /run HTTP/1.1" 200 -
+172.16.167.128 - - [27/Dec/2024 09:39:11] "POST /run HTTP/1.1" 200 -
 End task = task1
-192.168.65.1 - - [26/Dec/2024 23:37:32] "POST /run HTTP/1.1" 200 -
+172.16.167.128 - - [27/Dec/2024 09:39:21] "POST /run HTTP/1.1" 200 -
 Start task = task2, time_cost = 1, mem_cost = 2
 End task = task2
 ```
 
-Then send a request with `mem_cost` higher than the memory limits.
+Then send a request with `mem_cost` higher than the memory limits. You will see the pod be killed because of `OOMKilled`, then quickly be restarted.
 
 ```shell
-curl -X POST 'http://47.119.132.211:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1","time_cost": 20,"memo_cost": 30}'
+$ kubectl get pods -n flask-ns
+NAME        READY   STATUS    RESTARTS   AGE
+flask-pod   1/1     Running   0          9m57s
+$ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1", "time_cost": 1,"mem_cost": 110}'
+$ kubectl get pods -n flask-ns
+NAME        READY   STATUS      RESTARTS   AGE
+flask-pod   0/1     OOMKilled   0          10m
+$ kubectl get pods -n flask-ns
+NAME        READY   STATUS    RESTARTS     AGE
+flask-pod   1/1     Running   1 (4s ago)   10m
 ```
 
-### 7.2 Namespace Resource Limit
+### 8.2 Namespace Resource Limit
 
-You can also set the maximum cpu and memory allowed by a namespace as below, to avoid the service in a single workspace to occupy all resources. 
+You can also set the maximum cpu and memory allowed by a namespace in a `flask-rq.yaml` as below, to avoid the service in a single workspace to occupy all resources. 
 
 ```yaml
 apiVersion: v1
@@ -83,22 +97,31 @@ spec:
   hard:
     pods: "10"
     requests.cpu: "1"
-    requests.memory: "500Mi"
-    limits.cpu: "1"
-    limits.memory: "500Mi"
+    requests.memory: "100Mi"
+    limits.cpu: "3"
+    limits.memory: "300Mi"
 ```
 
 P.S. If `limit` in `ResourceQuota`，then the `limit` configurations in the pod config file must be filled.
 
 We can test the update of workspace resource limit by continuously creating pods with resource `requests`, as shown below.
 
+`flask-pod-2.yaml`, `flask-pod-3.yaml`, and `flask-pod-4.yaml` are configure files similar to `flask-pod.yaml`, with only the `kind: Pod` part, and being only different in `metadata.name` and `containers.name`. Here we only display `flask-pod-2.yaml` as an example. Change the `metadata.name` and `containers.name` in the file can convert it to  `flask-pod-N.yaml`.
+
 ```shell
-$ kubectl apply -f .\podConfig.yaml
-pod/nginx-pod-1 created
-$ kubectl apply -f .\podConfig.yaml
-pod/nginx-pod-2 created
-$ kubectl apply -f .\podConfig.yaml
-Error from server (Forbidden): error when creating ".\\podConfig.yml": pods "nginx-pod-3" is forbidden: exceeded quota: test-rq, requested: limits.memory=200Mi,requests.memory=200Mi, used: limits.memory=400Mi,requests.memory=400Mi, limited: limits.memory=500Mi,requests.memory=500Mi
+$ kubectl apply -f flask-rq.yaml 
+resourcequota/flask-rq created
+$ kubectl apply -f flask-pod-2.yaml 
+pod/flask-pod-2 created
+$ kubectl apply -f flask-pod-3.yaml 
+pod/flask-pod-3 created
+$ kubectl apply -f flask-pod-4.yaml 
+Error from server (Forbidden): error when creating "flask-pod-4.yaml": pods "flask-pod-4" is forbidden: exceeded quota: flask-rq, requested: limits.cpu=1,limits.memory=100Mi, used: limits.cpu=3,limits.memory=300Mi, limited: limits.cpu=3,limits.memory=300Mi
+$ kubectl get pods -n flask-ns
+NAME          READY   STATUS    RESTARTS      AGE
+flask-pod     1/1     Running   1 (18m ago)   28m
+flask-pod-2   1/1     Running   0             4m49s
+flask-pod-3   1/1     Running   0             117s
 ```
 
 We can update the `ResourceQuota` of a namespace with the following command.
