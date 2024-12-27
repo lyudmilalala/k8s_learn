@@ -13,29 +13,39 @@ $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/cncamp/metrics-
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/cncamp/metrics-server:v0.5.0  docker.io/cncamp/metrics-server:v0.5.0
 ```
 
+The successful deployment of the metrics server should give a pod like the following.
+
+```shell
+$ kubectl get pods -A | grep "metrics"
+kube-system     metrics-server-76857dbb45-d7bdg                       1/1     Running            0    6h
+```
+
 Use `top` to see utilization
 
 ```
-$ kubectl top pod -n async-simu-sm-ns
-NAME                              CPU(cores)   MEMORY(bytes)   
-as-test-deploy-57bfc86b65-6z8xg   1m           38Mi
-as-test-deploy-57bfc86b65-lxthk   1m           38Mi
-as-test-deploy-57bfc86b65-xv9mr   1m           38Mi
+# first create a replica set
+$ kubectl apply -f flask-deployment.yaml 
+namespace/flask-ns unchanged
+deployment.apps/flask-deploy created
+service/flask-svc created
+# then check its resource utility
+$ kubectl top pod -n flask-ns
+NAME                            CPU(cores)   MEMORY(bytes)   
+flask-deploy-7f5c54ccf6-89cjn   6m           42Mi            
+flask-deploy-7f5c54ccf6-lgxkt   6m           41Mi            
+flask-deploy-7f5c54ccf6-tv8hs   6m           41Mi
 ```
 
 After a longer request (5s request is too short), can see the memory increases, then drops down after a while.
 
 ```
-$ curl -X POST http://localhost:30050/compute -H "Content-Type: application/json" -d "{\"request_id\": \"1ds3hf\", \"mem_cost\": 2, \"t_cost\": 10}"
-{
-  "msg": "",
-  "status": 200
-}
-$ kubectl top pod -n as-test-ns
-NAME                              CPU(cores)   MEMORY(bytes)   
-as-test-deploy-57bfc86b65-6z8xg   1m           38Mi
-as-test-deploy-57bfc86b65-lxthk   1m           38Mi
-as-test-deploy-57bfc86b65-xv9mr   1m           42Mi
+$ curl -X POST 'http://localhost:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1", "time_cost": 10,"mem_cost": 50}'
+{"current_queue_size": 1, "msg": "Pod flask-deploy-7f5c54ccf6-tv8hs starts processing task = task1", "pod_name": "flask-deploy-7f5c54ccf6-tv8hs", "status": 200}
+$ kubectl top pod -n flask-ns
+NAME                            CPU(cores)   MEMORY(bytes)   
+flask-deploy-7f5c54ccf6-89cjn   6m           42Mi            
+flask-deploy-7f5c54ccf6-lgxkt   6m           41Mi            
+flask-deploy-7f5c54ccf6-tv8hs   8m           91Mi
 ```
 
 ### Use HPA to scale up and down
