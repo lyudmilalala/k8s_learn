@@ -9,13 +9,9 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 pod_name = os.getenv('POD_NAME', '<unset>')  # get the pod name from environment variable    
-status = "AVAILABLE" # Global variable to hold the status
 
 @app.route('/compute', methods=['POST'])
 def compute():
-    global status
-    status = "BUSY"
-    
     data = request.get_json()
     request_id = data.get('request_id')
     mem_cost = int(data.get('mem_cost')) # in MB
@@ -27,10 +23,6 @@ def compute():
     
     # Sleep to simulate CPU time cost
     time.sleep(t_cost)
-
-    # Update status back to AVAILABLE once done
-    status = "AVAILABLE"
-    
     return jsonify({"status": 200, "msg": ""})
 
 @app.route('/status', methods=['GET'])

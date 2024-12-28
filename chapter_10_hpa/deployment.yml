@@ -1,45 +1,74 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flask-ns
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: as-test-deploy
-  namespace: as-test-ns
+  name: flask-deploy
+  namespace: flask-ns
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: as-test-app
+      app: flask-app
   template:
     metadata:
       labels:
-        app: as-test-app
+        app: flask-app
     spec:
       containers:
-      - name: as-test-pod
-        image: lyudmilalala/as-test-img:1.0.0
+      - name: flask-pod
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-test:4.0.0
+        imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 5000
-          protocol: TCP
+        - name: liveness-port
+          containerPort: 8080
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "10Mi"
+          limits:
+            cpu: "1000m"
+            memory: "100Mi"
+        livenessProbe:
+          httpGet:
+            path: /livenessCheck
+            port: liveness-port
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          failureThreshold: 3
         env:
+        - name: APP_NAME
+          value: "Jerry-learning"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: POD_NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        resources:
-          requests:
-            memory: "75Mi"
-          limits:
-            memory: "75Mi"
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: as-test-svc
-  namespace: as-test-ns
+  name: flask-svc
+  namespace: flask-ns
 spec:
   type: NodePort
   ports:
-  - port: 5000
+  - port: 8080
     protocol: TCP
     nodePort: 30050
   selector:
-    app: as-test-app
+    app: flask-app

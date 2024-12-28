@@ -4,7 +4,7 @@
 
 [Reference 1](https://github.com/nonai/k8s-example-files.git)
 
-Apply the metrics server in the k8s cluster by `kubectl apply -f components.yaml`. It is downloaded from [Metrics Server Config](https://github.com/lyudmilalala/k8s_learn/blob/master/module11/components.yaml).
+Apply the metrics server in the k8s cluster by `kubectl apply -f metrics_server/components.yaml`. It is downloaded from [Metrics Server Config](https://github.com/lyudmilalala/k8s_learn/blob/master/module11/components.yaml).
 
 If you cannot download the image `cncamp/metrics-server` because of the GFW. You can work around by:
 
@@ -17,18 +17,21 @@ The successful deployment of the metrics server should give a pod like the follo
 
 ```shell
 $ kubectl get pods -A | grep "metrics"
-kube-system     metrics-server-76857dbb45-d7bdg                       1/1     Running            0    6h
+kube-system     metrics-server-76857dbb45-d7bdg           1/1     Running            0    6h
 ```
 
-Use `top` to see utilization
+Deploy a `flask-app:4.0.0` replica set. Notice this image version remove the `readinessProbe` rely on a status variable. A flask server can handle multiple requests concurrently.
 
-```
-# first create a replica set
+```shell
 $ kubectl apply -f flask-deployment.yaml 
 namespace/flask-ns unchanged
 deployment.apps/flask-deploy created
 service/flask-svc created
-# then check its resource utility
+```
+
+Then use `top` to check its resource utilization
+
+```shell
 $ kubectl top pod -n flask-ns
 NAME                            CPU(cores)   MEMORY(bytes)   
 flask-deploy-7f5c54ccf6-89cjn   6m           42Mi            
@@ -38,8 +41,8 @@ flask-deploy-7f5c54ccf6-tv8hs   6m           41Mi
 
 After a longer request (5s request is too short), can see the memory increases, then drops down after a while.
 
-```
-$ curl -X POST 'http://localhost:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1", "time_cost": 10,"mem_cost": 50}'
+```shell
+$ curl -X POST 'http://47.106.149.128:30050/run' --header 'Content-Type: application/json' --data-raw '{"name": "task1", "time_cost": 10,"mem_cost": 50}'
 {"current_queue_size": 1, "msg": "Pod flask-deploy-7f5c54ccf6-tv8hs starts processing task = task1", "pod_name": "flask-deploy-7f5c54ccf6-tv8hs", "status": 200}
 $ kubectl top pod -n flask-ns
 NAME                            CPU(cores)   MEMORY(bytes)   
@@ -50,10 +53,10 @@ flask-deploy-7f5c54ccf6-tv8hs   8m           91Mi
 
 ### Use HPA to scale up and down
 
-Apply config, notice the `apiVersion` of autoscaling
+Apply the scaler config, notice the `apiVersion` of autoscaling
 
 ```
-kubectl apply -f .\scaler.yml
+kubectl apply -f scaler.yaml
 ```
 
 Use JMeter to request multiple times concurrently. Check the pod list can see more items than before.
