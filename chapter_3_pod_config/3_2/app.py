@@ -1,9 +1,13 @@
 from flask import Flask, request, json
+from datetime import datetime
 app = Flask(__name__)
 
 import os
 pod_name = os.getenv('POD_NAME')
 app_name = os.getenv('APP_NAME')
+
+def format_log_time():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
 @app.route('/sum', methods=['POST'])
 def sum():
@@ -28,11 +32,11 @@ executor = ThreadPoolExecutor(max_workers=5)
 
 def async_task(task_name, time_cost):
     global status
-    print(f"Start task = {task_name}")
+    print(f"[LOG {format_log_time()}] Start task = {task_name}")
     status = DEVICE_STATUS_BUSY
     time.sleep(time_cost)  
     status = DEVICE_STATUS_IDLE
-    print(f"End task = {task_name}")
+    print(f"[LOG {format_log_time()}] End task = {task_name}")
 
 @app.route('/run', methods=['POST'])
 def runTask():
@@ -66,7 +70,7 @@ async def init_keys():
     for i in range(3):
         time.sleep(2) 
         keys.append(f'Key{i}')
-        print(f"Add Key{i}")
+        print(f"[LOG {format_log_time()}] Add Key{i}")
 
 @app.route('/startCheck', methods=['GET'])
 def startCheck():

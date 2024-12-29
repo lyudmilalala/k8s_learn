@@ -7,7 +7,7 @@ url = 'http://47.106.149.128:30050/run'
 # send a single request
 def send_post_request(task_id):
     headers = {'Content-Type': 'application/json'}
-    data = json.dumps({"name": f"task{task_id}", "time_cost": 2, "mem_cost": 20})
+    data = json.dumps({"name": f"task{task_id}", "time_cost": 1, "mem_cost": 20})
     response = requests.post(url, headers=headers, data=data)
     return response.status_code
 
@@ -17,7 +17,7 @@ def concurrent_requests(max_workers, duration):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_task_id = {executor.submit(send_post_request, i): i for i in range(1, max_workers + 1)}
 
-        while time.time() - start_time < duration + 10:
+        while time.time() - start_time < duration + 20:
             for future in as_completed(future_to_task_id, timeout=1):
                 task_id = future_to_task_id[future]
                 try:
@@ -35,5 +35,5 @@ def concurrent_requests(max_workers, duration):
 
 if __name__ == "__main__":
     max_workers = 10  # max concurrent thread number
-    duration = 50  # keep running time lengths
+    duration = 100  # keep running time lengths
     concurrent_requests(max_workers, duration)

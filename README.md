@@ -10,11 +10,12 @@ This is a guide for learning k8s, involving multiple different topics required f
 6. Logging & Monitor (Loki & Prometheus & Grafana)
 7. Use images from private repo
 8. Resource Limit
-9. Persist Data to Volume
-10. HPA
-11. Job
+9. HPA
+10. Job
+11. Persist Data to Volume
 12. Operator
 13. FaaS Framework KNative
+14. Istio
 
 ### Docker image proxy
 

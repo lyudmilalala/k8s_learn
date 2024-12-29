@@ -53,8 +53,7 @@ $ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: applicati
 Add python date log
 
 ```
-def format_log_time():
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+
 ```
 
 And if you check logs of the pod, you will see something like this:
@@ -102,7 +101,7 @@ spec:
     limits.memory: "300Mi"
 ```
 
-P.S. If `limit` in `ResourceQuota`，then the `limit` configurations in the pod config file must be filled.
+**NOTICE**: If `limit` in `ResourceQuota`，then the `limit` configurations in the pod config file must be filled.
 
 We can test the update of workspace resource limit by continuously creating pods with resource `requests`, as shown below.
 
