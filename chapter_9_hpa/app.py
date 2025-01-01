@@ -30,6 +30,7 @@ def async_task(task_name, time_cost, mem_cost):
     # Dummy variable to simulate memory usage
     dummy_mem = 'a' * (mem_cost * 1024 * 1024)
     time.sleep(time_cost)  
+    del dummy_mem
     print(f"[LOG {format_log_time()}] End task = {task_name}")
 
 @app.route('/run', methods=['POST'])

@@ -1,4 +1,4 @@
-## 6. Use images from private repo
+## 7. Use images from private repo
 
 Create a `Secret` named `dockerSecret` with docker private hub credential in it as below:
 
