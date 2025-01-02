@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-test
+spec:
+  completions: 5
+  parallelism: 5 
+  activeDeadlineSeconds: 30
+  backoffLimit: 3
+  template:
+    spec:
+      containers:
+      - name: job-app
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/job-test:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:  ["python", "job.py", "--firstName", "Helen", "--n", "4"]
+      restartPolicy: OnFailure
