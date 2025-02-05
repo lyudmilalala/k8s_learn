@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: appA-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appA-deploy
+  namespace: appA-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: appA-app
+  template:
+    metadata:
+      labels:
+        app: appA-app
+    spec:
+      containers:
+      - name: appA-pod
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/app-a:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appA-svc
+  namespace: appA-ns
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    protocol: TCP
+    nodePort: 30061
+  selector:
+    app: appA-app

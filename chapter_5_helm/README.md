@@ -138,7 +138,7 @@ my-first-chart/
 └── values.yaml
 ```
 
-Modify `Chart.yaml`, `templates/deployment.yaml`, `templates/service.yaml`, `values.yaml` as shown in the `my-first-chart` folder in the current directory. Make the chart similar to our `flask-app` service in chapter 3. 
+Modify `Chart.yaml`, `templates/deployment.yaml`, `templates/service.yaml`, `values.yaml` as shown in the `my-first-chart` folder in the current directory. Make the chart similar to our `flask-app` service in chapter 3.2. 
 
 There are many predefined functions look similar to `my-first-chart.fullname` in files in `templates`. These functions are defined in `templates/_helpers.tpl`. You can look into their definitions details or defined more functions for your convenience in this file.
 

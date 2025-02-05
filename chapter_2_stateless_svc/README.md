@@ -103,7 +103,7 @@ While the server is running, make a request as
 curl -X POST 'http://localhost:18080/sum' --header 'Content-Type: application/json' --data-raw '{"a": 7,"b": 2}'
 ```
 
-will give a result similar to `{"msg": "sum = 19", "status": 200}`.
+will give a result similar to `{"msg": "sum = 9", "status": 200}`.
 
 Push your new docker image after ensuring everything is correct by
 

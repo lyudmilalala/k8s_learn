@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: appB-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appB-deploy
+  namespace: appB-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: appB-app
+  template:
+    metadata:
+      labels:
+        app: appB-app
+    spec:
+      containers:
+      - name: appB-pod
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/app-b:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appB-svc
+  namespace: appB-ns
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    protocol: TCP
+    nodePort: 30062
+  selector:
+    app: appB-app
