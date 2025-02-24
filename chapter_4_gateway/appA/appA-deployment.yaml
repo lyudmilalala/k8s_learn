@@ -1,25 +1,25 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: appA-ns
+  name: appa-ns
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: appA-deploy
-  namespace: appA-ns
+  name: appa-deploy
+  namespace: appa-ns
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: appA-app
+      app: appa-app
   template:
     metadata:
       labels:
-        app: appA-app
+        app: appa-app
     spec:
       containers:
-      - name: appA-pod
+      - name: appa-pod
         image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/app-a:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
@@ -28,8 +28,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: appA-svc
-  namespace: appA-ns
+  name: appa-svc
+  namespace: appa-ns
 spec:
   type: NodePort
   ports:
@@ -37,4 +37,4 @@ spec:
     protocol: TCP
     nodePort: 30061
   selector:
-    app: appA-app
+    app: appa-app

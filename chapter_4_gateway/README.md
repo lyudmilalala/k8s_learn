@@ -25,8 +25,8 @@ $ docker rm -f appB
 And push these images.
 
 ```shell
-$ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-appA:1.0.0
-$ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/flask-appB:1.0.0
+$ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/app-a:1.0.0
+$ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/app-b:1.0.0
 ```
 
 And build the deployments and services, then test them.
@@ -43,5 +43,15 @@ $ curl -X POST 'http://47.119.148.12:30062/substract' --header 'Content-Type: ap
 ```
 
 ### 4.2 Routing by Nginx Ingress
+
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
+
+registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.0@sha256:aaafd456bda110628b2d4ca6296f38731a3aaf0bf7581efae824a41c770a8fc4
+
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.0
+
+
 
 ### 4.3 Routing by Traefik
