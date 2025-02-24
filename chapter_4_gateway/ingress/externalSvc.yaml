@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: appa-svc-external
+  namespace: ingress-nginx
+spec:
+  type: ExternalName
+  externalName: appa-svc.appa-ns.svc.cluster.local
+  ports:
+  - port: 8080
+    protocol: TCP
+    nodePort: 30061
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: appb-svc-external
+  namespace: ingress-nginx
+spec:
+  type: ExternalName
+  externalName: appb-svc.appb-ns.svc.cluster.local
+  ports:
+  - port: 8080
+    protocol: TCP
+    nodePort: 30062
