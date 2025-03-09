@@ -1,20 +1,20 @@
 ## Logging - Loki
 
-### 使用`loki-stack`一键式安装到K8s集群
+### Instll `loki-stack`
 
-[需要使用helm](https://helm.sh/docs/intro/install/)
+[First install helm, refer to this link.](https://helm.sh/docs/intro/install/)
 
-[helm repo](https://artifacthub.io/packages/helm/grafana/loki-stack)
+[The helm repository of loki-stack is here.](https://artifacthub.io/packages/helm/grafana/loki-stack)
 
-[帮不了什么忙的values.yaml example](https://github.com/grafana/helm-charts/blob/main/charts/loki-stack/values.yaml)
+[values.yaml example of the helm chart of loki-stack.](https://github.com/grafana/helm-charts/blob/main/charts/loki-stack/values.yaml)
 
-通过helm安装
+Install `loki-stack` by helm.
 
 ```
 helm install loki-stack ./loki-stack-2.9.11/loki-stack -n loki-logging --create-namespace  --values loki-local-values.yaml
 ```
 
-若下载镜像遭遇GFW，可使用如下
+If images failed to download because of GFW, use the following substitutions.
 
 ```shell
 $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:8.3.5
@@ -27,7 +27,7 @@ $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/k8s.gcr.io/kube-state-met
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0  k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0
 ```
 
-通过loki-stack-grafana服务的NodePort访问Grafana控制台，即可查看log
+Check if the pods and services in namespace `loki-logging` are ready.
 
 ```
 $ kubectl get svc -n loki-logging
@@ -37,20 +37,10 @@ loki-stack-grafana      NodePort    10.98.210.213   <none>        80:32298/TCP  
 loki-stack-headless     ClusterIP   None            <none>        3100/TCP       20m
 loki-stack-memberlist   ClusterIP   None            <none>        7946/TCP       20m
 ```
-zhvHpoNl5tgUVer8gCQPFjzsAgLqKGQQd3yQ4oYj
 
-32298
+We use the NodePort of service `loki-stack-grafana` to access Grafana. Indeed, here we can access Grafana by visiting `<host_ip>:31364`.
 
-则可以通过<host_ip>:31364访问grafana
-
-
-用户名为admin
-
-Grafana密码通过`kubectl get secret -n loki-logging loki-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode`获取，然后需要base64解码
-
-powershell执行`[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(<secret_val>))`
-
-卸载
+To uninstall, run
 
 ```
 helm uninstall loki-stack -n loki-logging
@@ -94,5 +84,39 @@ INFO:root:[LOG 2025-02-11 17:20:25.882] End task = task1
 ```
 
 ### View log in Grafana
+
+通过<host_ip>:31364访问grafana
+
+Access the Grafana dashboard by `<host_ip>:31364`.
+
+Username is `admin`. Password is got by running `kubectl get secret -n loki-logging loki-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode`.
+
+If you use Windows Powershell, run `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(<secret_val>))`.
+
+After logging in, click the "Explore" on the left side collapse menu to see the log page.
+
+![Home page of Grafana](https://github.com/user-attachments/assets/8cb20d99-a75d-4d20-866d-35ab95c06b11)
+
+Logs in Loki are grouped by tags, and you can only find corresponding logs by tags. Thus, we first choose to group by namespaces, then pick the namespace we are interested in, which is `flask-ns`.
+
+![Choose tags](https://github.com/user-attachments/assets/c039e2e5-42d4-46fe-b819-40689127f42d)
+
+After click the "Show logs" button, you can see logs in namespace `flask-ns`.
+
+You can further filter the logs by interested time range as shown below.
+
+## Add a new Dashboard to Grafana
+
+Visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
+
+Click the desired dashboard to see its detail, and copy its dashboard ID.
+
+Go back to your Grafana, choose Create -> Import, and then fill in the dashboard ID in the shown up page.
+
+Continue for more configuration, choose `Promethus` to be the data source.
+
+Then you will see the dashboard shown up.
+
+If you want to customize the dashboard, select the element you wish to modify, right-click on it, and choose Edit.
 
 ## Monitor - Prometheus
