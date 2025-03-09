@@ -103,20 +103,36 @@ Logs in Loki are grouped by tags, and you can only find corresponding logs by ta
 
 After click the "Show logs" button, you can see logs in namespace `flask-ns`.
 
+![See logs](https://github.com/user-attachments/assets/69725f31-5947-44c5-abe8-26b07d694237)
+
 You can further filter the logs by interested time range as shown below.
+
+![Filter by time range](https://github.com/user-attachments/assets/48ebe9a1-6b49-4712-9e2c-5c246b7ff31d)
 
 ## Add a new Dashboard to Grafana
 
 Visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
 
+![[Grafana Dashboard Home Page](https://github.com/user-attachments/assets/d89af14d-6e4f-45b8-b702-6cac396d6635)
+
 Click the desired dashboard to see its detail, and copy its dashboard ID.
 
-Go back to your Grafana, choose Create -> Import, and then fill in the dashboard ID in the shown up page.
+![Copy Id from the Dashboard Detail](https://github.com/user-attachments/assets/b5d3cf71-1f12-4a3a-a035-ecc8b8ad5405)
+
+Go back to your Grafana, choose Create -> Import, and then fill in the dashboard ID in the shown up page. 
+
+![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/be6d45ba-ba3a-4810-8ae4-5ec152d9fe70)
 
 Continue for more configuration, choose `Promethus` to be the data source.
 
+![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/01dd9ac1-ffb8-4b3e-960f-fcee20e0ca41)
+
 Then you will see the dashboard shown up.
 
+![New Dashboard](https://github.com/user-attachments/assets/72c88c5b-7703-4f34-a7d2-c17925c4ae96)
+
 If you want to customize the dashboard, select the element you wish to modify, right-click on it, and choose Edit.
+
+![Customize an element](https://github.com/user-attachments/assets/3243dfb8-c10a-4069-9352-cb11041f321c)
 
 ## Monitor - Prometheus
