@@ -113,7 +113,7 @@ You can further filter the logs by interested time range as shown below.
 
 Visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
 
-![[Grafana Dashboard Home Page](https://github.com/user-attachments/assets/d89af14d-6e4f-45b8-b702-6cac396d6635)
+![Grafana Dashboard Home Page](https://github.com/user-attachments/assets/d89af14d-6e4f-45b8-b702-6cac396d6635)
 
 Click the desired dashboard to see its detail, and copy its dashboard ID.
 
