@@ -8,9 +8,9 @@
 
 [values.yaml example of the helm chart of loki-stack.](https://github.com/grafana/helm-charts/blob/main/charts/loki-stack/values.yaml)
 
-Install `loki-stack` by helm.
+Install `loki-stack` by helm. Here I have a local copy of helm resource and configuration file.
 
-```
+```shell
 helm install loki-stack ./loki-stack-2.9.11/loki-stack -n loki-logging --create-namespace  --values loki-local-values.yaml
 ```
 
@@ -109,11 +109,37 @@ You can further filter the logs by interested time range as shown below.
 
 ![Filter by time range](https://github.com/user-attachments/assets/48ebe9a1-6b49-4712-9e2c-5c246b7ff31d)
 
-## Add a new Dashboard to Grafana
+## Monitor - Prometheus
+
+In our example, promethus is installed to the cluster together with loki and grafana if you set `prometheus.enabled: true` in the `loki-local-values.yaml`.
+
+If you do not use loki-stack, you may install prometheus and grafana by the following way.
+
+```shell
+$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+"prometheus-community" has been added to your repositories
+$ helm repo update
+$ kubectl create namespace monitoring
+$ helm install grafana grafana/grafana --namespace monitoring
+$ helm install prometheus prometheus-community/prometheus --namespace monitoring
+```
+
+[prometheus config yaml sample](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml)
+
+See the prometheus UI...
+
+### Add a new Dashboard to Grafana
+
+**NOTICE:** If we do not choose a presistence storage type for loki-stack, all configurations we made will be lost after restart the service or cluster.
 
 Visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
 
 ![Grafana Dashboard Home Page](https://github.com/user-attachments/assets/d89af14d-6e4f-45b8-b702-6cac396d6635)
+
+Here are some useful dashboards to monitor your k8s cluster with the help of promethus.
+
+- 12740 - Kubernetes monitoring dashboard
+- 15282 - Kubernetes cluster monitoring
 
 Click the desired dashboard to see its detail, and copy its dashboard ID.
 
@@ -131,8 +157,23 @@ Then you will see the dashboard shown up.
 
 ![New Dashboard](https://github.com/user-attachments/assets/72c88c5b-7703-4f34-a7d2-c17925c4ae96)
 
-If you want to customize the dashboard, select the element you wish to modify, right-click on it, and choose Edit.
+
+### Edit the Dashboard in Grafana
+
+Here we take dashboard No.
+
+After create the dashboard, we can find out that the graph does not show the CPU usage of each pod as it announced. 
+
+So we select the graph, right-click on it, and choose Edit to see what is wrong.
+
+Here we can see the prometheus query (PromQL) used to draw this graph.
 
 ![Customize an element](https://github.com/user-attachments/assets/3243dfb8-c10a-4069-9352-cb11041f321c)
 
-## Monitor - Prometheus
+Simply change to the "podName" in the sentence by "pod", and you will see the CPU usage of all pods grouped by their names shows up.
+
+You can also create your own dashboards using customized PromQL. A collection of useful prometheus alert rules can be found at [Awesome Prometheus Alerts](https://github.com/asifMuzammil/awesome-prometheus-alerts).
+
+The Loki dashboard on grafana is crated by some similar queries called LogQL.
+
+## Presist Data

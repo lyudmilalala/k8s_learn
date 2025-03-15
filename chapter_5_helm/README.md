@@ -66,6 +66,30 @@ $ helm install loki-stack grafana/loki-stack -n loki-logging --create-namespace 
 
 Here we first add the repository of Grafana. Then we update the repository to see all latest charts. Finally, we deploy the `grafana/loki-stack` chart to a local release named `loki-stack`, with customized parameters in local file `loki-local-values.yaml`.
 
+### 5.3 Switch to another helm repository
+
+Because of the GFW, sometimes it would be hard to pull resouces from the github or google repositories. Here are some alternative choices. You can add them to your repository list.
+
+```shell
+$ helm repo list
+$ helm repo remove stable
+$ helm repo add stable https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+$ helm repo add kaiyuanshe http://mirror.kaiyuanshe.cn/kubernetes/charts
+$ helm repo add azure http://mirror.azure.cn/kubernetes/charts
+$ helm repo add dandydev https://dandydeveloper.github.io/charts
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+```
+
+Then when you search for a chart, the resources from these repositories will be available. Then you can pull and use them as usual.
+
+```shell
+$ helm pull bitnami/redis-cluster --version 8.1.2
+$ helm install redis-cluster bitnami/redis-cluster --set global.storageClass=nfs,global.redis.password=xiagao --version 8.1.2
+$ helm uninstall redis-cluster
+```
+
+But be careful, charts from these repositories may have serious dependency problems.
+
 ### 5.3 List all helm release in the current Kubernetes cluster
 
 `helm list -n <release-ns>` or `helm ls -n <release-ns>` list the deployed releases in this k8s cluster for us. 
