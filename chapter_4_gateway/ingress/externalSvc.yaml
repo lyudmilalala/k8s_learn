@@ -6,10 +6,6 @@ metadata:
 spec:
   type: ExternalName
   externalName: appa-svc.appa-ns.svc.cluster.local
-  ports:
-  - port: 8080
-    protocol: TCP
-    nodePort: 30061
 
 ---
 
@@ -21,7 +17,3 @@ metadata:
 spec:
   type: ExternalName
   externalName: appb-svc.appb-ns.svc.cluster.local
-  ports:
-  - port: 8080
-    protocol: TCP
-    nodePort: 30062

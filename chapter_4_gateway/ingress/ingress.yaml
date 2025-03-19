@@ -10,17 +10,17 @@ spec:
   - host: 47.119.148.144
     http:
       paths:
-      - path: /appa(/|$)(.*)
+      - path: /appa/(.*)
         pathType: Prefix
         backend:
           service:
             name: appa-svc-external
             port:
-              number: 30065
-      - path: /appb(/|$)(.*)
+              number: 8080
+      - path: /appb/(.*)
         pathType: Prefix
         backend:
           service:
             name: appb-svc-external
             port:
-              number: 30065
+              number: 8080
