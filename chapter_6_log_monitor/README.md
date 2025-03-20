@@ -25,6 +25,14 @@ $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/promtai
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/promtail:2.8.3  docker.io/grafana/promtail:2.8.3
 $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0  k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/jimmidyson/configmap-reload:v0.5.0-linuxarm64
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/jimmidyson/configmap-reload:v0.5.0-linuxarm64  docker.io/jimmidyson/configmap-reload:v0.5.0
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/prom/pushgateway:v1.9.0
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/prom/pushgateway:v1.9.0  docker.io/prom/pushgateway:v1.9.0
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/quay.io/prometheus/prometheus:v2.54.1
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/quay.io/prometheus/prometheus:v2.54.1  quay.io/prometheus/prometheus:v2.54.1
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/quay.io/prometheus/alertmanager:v0.27.0-linuxarm64
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/quay.io/prometheus/alertmanager:v0.27.0-linuxarm64  quay.io/prometheus/alertmanager:v0.27.0
 ```
 
 Check if the pods and services in namespace `loki-logging` are ready.
