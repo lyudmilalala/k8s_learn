@@ -13,9 +13,10 @@ This is a guide for learning k8s, involving multiple different topics required f
 9. HPA
 10. Job （TODO the job creator part）
 11. Persist Data to Volume  （TODO）
-12. Operator  （TODO）
-13. FaaS Framework KNative  （TODO）
-14. Istio  （TODO）
+12. Call external services (TODO)
+13. Operator  （TODO）
+14. FaaS Framework KNative  （TODO）
+15. Istio  （TODO）
 
 ### Docker image proxy
 
