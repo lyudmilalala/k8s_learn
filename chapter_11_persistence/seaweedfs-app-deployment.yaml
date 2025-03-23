@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-pvc
+spec:
+  storageClassName: ""
+  volumeName: nfs-pv
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-demo-deploy
+  namespace: storage-demo-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: storage-demo-app
+  template:
+    metadata:
+      labels:
+        app: storage-demo-app
+    spec:
+      containers:
+      - name: storage-demo-pod
+        image: crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/storage-app:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: STORAGE_PREFIX
+          value: "/opt/fs"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: seaweedfs-pvc
+          mountPath: /opt/fs
+      volumes:
+      - name: seaweedfs-pvc
+        persistentVolumeClaim:
+          claimName: seaweedfs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-demo-svc
+  namespace: storage-demo-ns
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    protocol: TCP
+    nodePort: 30090
+  selector:
+    app: storage-demo-app
