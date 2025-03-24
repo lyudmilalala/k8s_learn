@@ -2,6 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: seaweedfs-pvc
+  namespace: storage-demo-ns
 spec:
   storageClassName: ""
   volumeName: nfs-pv
@@ -34,14 +35,14 @@ spec:
         - containerPort: 8080
         env:
         - name: STORAGE_PREFIX
-          value: "/opt/fs"
+          value: "/opt"
         - name: POD_NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
         volumeMounts:
         - name: seaweedfs-pvc
-          mountPath: /opt/fs
+          mountPath: /opt
       volumes:
       - name: seaweedfs-pvc
         persistentVolumeClaim:

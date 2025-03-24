@@ -8,10 +8,10 @@ WORKDIR /app
 ADD app.py /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir Flask==2.0.2 requests==2.26.0 Werkzeug==2.0.2
+RUN pip install --no-cache-dir Flask==2.0.2 Werkzeug==2.0.2
 
 # add default environment variables
-ENV POD_NAME="dummy_pod" STORAGE_PREFIX = "/opt/fs"
+ENV POD_NAME="dummy_pod" STORAGE_PREFIX="/opt"
 
 # Make port 5000 available to the world outside this container
 EXPOSE 8080

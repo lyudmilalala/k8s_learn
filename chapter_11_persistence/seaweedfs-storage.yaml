@@ -12,6 +12,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: seaweedfs-static
+  namespace: storage-demo-ns
 spec:
   accessModes:
   - ReadWriteMany
@@ -23,7 +24,7 @@ spec:
     volumeAttributes:
       collection: mycollect1
       replication: "000"
-      path: /data/swfs
+      path: /data/seaweedfs/csi
       diskType: "ssd"
     readOnly: false
   persistentVolumeReclaimPolicy: Retain
