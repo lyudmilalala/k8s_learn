@@ -15,8 +15,8 @@ docker run -d -p 8080:8080 -v "D:\projects\k8s_learn\chapter_11_persistence\tmp:
 Some test samples.
 
 ```shell
-$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test.txt", "content": "Hello, World!"}' http://192.168.1.4:8080/write
-{"message": "File test.txt written successfully"}
+$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test1.txt", "content": "Hello, World!"}' http://192.168.1.4:8080/write
+{"message": "File test1.txt written successfully"}
 $ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test2.txt", "content": "Good morning!"}' http://192.168.1.4:8080/write
 {"message": "File test2.txt written successfully"}
 $ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test3.txt", "content": "Good evening!"}' http://192.168.1.4:8080/write
@@ -114,14 +114,16 @@ storage-demo-deploy-784fdf68bf-n7ct4   1/1     Running   0          34m
 storage-demo-deploy-784fdf68bf-wzkch   1/1     Running   0          34m
 ```
 
+Do some tests, and if you see the logs of the pods, you can see that, files are written and read by different pods, but each pod can see the contents in the shared volume `/data/nfs`.
+
 ```shell
-$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test1.txt", "content": "Hello, World!"}' http://192.168.1.128:30090/write
-{"message": "File test.txt written successfully"}
-$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test2.txt", "content": "Good morning!"}' http://192.168.1.128:30090/write
+$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test1.txt", "content": "Hello, World!"}' http://192.168.1.248:30090/write
+{"message": "File test1.txt written successfully"}
+$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test2.txt", "content": "Good morning!"}' http://192.168.1.248:30090/write
 {"message": "File test2.txt written successfully"}
-$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test3.txt", "content": "Good evening!"}' http://192.168.1.128:30090/write
+$ curl -X POST -H "Content-Type: application/json" -d '{"filename": "test3.txt", "content": "Good evening!"}' http://192.168.1.248:30090/write
 {"message": "File test2.txt written successfully"}
-$ curl 192.168.1.128:30090/list
+$ curl 192.168.1.248:30090/list
 {
   "files": [
     "test.txt",
@@ -129,7 +131,7 @@ $ curl 192.168.1.128:30090/list
     "test3.txt"
   ]
 }
-$ curl http://192.168.1.128:30090/read?filename=test2.txt
+$ curl http://192.168.1.248:30090/read?filename=test2.txt
 {
   "content": "Good morning!",
   "filepath": "/opt/test2.txt"
