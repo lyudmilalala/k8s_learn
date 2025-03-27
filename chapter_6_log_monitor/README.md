@@ -139,6 +139,7 @@ $ helm install prometheus prometheus-community/prometheus -n monitoring --set al
 [Helm chart source](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus)
 [prometheus config yaml sample](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml)
 [Bind to pvc](https://medium.com/@gayatripawar401/deploy-prometheus-and-grafana-on-kubernetes-using-helm-5aa9d4fbae66)
+[Another tutorial](https://medium.com/@akilblanchard09/monitoring-a-kubernetes-cluster-using-prometheus-and-grafana-8e0f21805ea9)
 
 See the prometheus UI...
 
