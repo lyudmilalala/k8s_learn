@@ -57,9 +57,15 @@ $ helm install --set seaweedfsFiler=192.168.1.250:7333 seaweedfs-csi-driver ./se
 
 As usual, if you fail to pull down some of the official images, here is a substitution solution.
 
-```shell
+As swr does not accept the label "latest", we may need to grab `chrislusf/seaweedfs-csi-driver:latest` through VPN by our own.
 
+```shell
+$ docker tag chrislusf/seaweedfs-csi-driver:latest crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/seaweedfs-csi-driver:latest
+$ docker push crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/seaweedfs-csi-driver:latest
+$ docker tag crpi-foj3lu39cfzgj05z.cn-shenzhen.personal.cr.aliyuncs.com/jerry-learn/seaweedfs-csi-driver:latest chrislusf/seaweedfs-csi-driver:latest
 ```
+
+PV and PVC are one to one mapped.
 
 ### Use NFS as the Storage
 
