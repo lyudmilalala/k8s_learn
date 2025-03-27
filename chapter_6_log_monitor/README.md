@@ -128,11 +128,17 @@ $ helm repo add prometheus-community https://prometheus-community.github.io/helm
 "prometheus-community" has been added to your repositories
 $ helm repo update
 $ kubectl create namespace monitoring
-$ helm install grafana grafana/grafana --namespace monitoring
-$ helm install prometheus prometheus-community/prometheus --namespace monitoring
+kubectl create namespace monitoring
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0  registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
+$ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.persistentVolume.enabled="false" --set server.persistentVolume.enabled="false"
+$ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.enabled=false --set server.persistentVolume.existingClaim=monitor-pvc --set server.
+
 ```
 
+[Helm chart source](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus)
 [prometheus config yaml sample](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml)
+[Bind to pvc](https://medium.com/@gayatripawar401/deploy-prometheus-and-grafana-on-kubernetes-using-helm-5aa9d4fbae66)
 
 See the prometheus UI...
 
