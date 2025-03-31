@@ -1,18 +1,7 @@
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: seaweedfs-sc
-provisioner: seaweedfs-csi-driver
-parameters:
-  collection: mycollect1
-  replication: "000"
-  diskType: "ssd"
----
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: seaweedfs-static
-  namespace: storage-demo-ns
 spec:
   accessModes:
   - ReadWriteMany
@@ -22,10 +11,23 @@ spec:
     driver: seaweedfs-csi-driver
     volumeHandle: dfs-test
     volumeAttributes:
-      collection: mycollect1
+      collection: collection1
       replication: "000"
       path: /data/seaweedfs/csi
-      diskType: "ssd"
     readOnly: false
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-pvc
+  namespace: storage-demo-ns
+spec:
+  storageClassName: ""
+  volumeName: seaweedfs-static
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
