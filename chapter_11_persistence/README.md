@@ -237,3 +237,18 @@ Topology volumeSizeLimit:1024 MB hdd(volume:8/20 active:8 free:12 remote:0) ssd(
   DataCenter DefaultDataCenter total size:4688 file_count:8 
 total size:4688 file_count:8 
 ```
+
+```
+root@iZwz988bno1q7yrktwo0auZ:~/k8s_learning/chapter_11_persistence# kubectl get pvc -n monitoring
+NAME             STATUS   VOLUME                  CAPACITY   ACCESS MODES   STORAGECLASS           AGE
+grafana-pvc      Bound    seaweedfs-monitor-pv2   3Gi        RWX            seaweedfs-monitor-sc   22s
+monitor-pvc      Bound    nfs-monitor-pv          10Gi       RWX            nfs-sc                 4d4h
+prometheus-pvc   Bound    seaweedfs-monitor-pv1   3Gi        RWX            seaweedfs-monitor-sc   22s
+root@iZwz988bno1q7yrktwo0auZ:~/k8s_learning/chapter_11_persistence# kubectl get pv
+NAME                    CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                           STORAGECLASS           REASON   AGE
+nfs-app-pv              5Gi        RWX            Retain           Available                                   nfs-sc                          4d4h
+nfs-monitor-pv          10Gi       RWX            Retain           Bound       monitoring/monitor-pvc          nfs-sc                          4d4h
+seaweedfs-monitor-pv1   3Gi        RWX            Retain           Bound       monitoring/prometheus-pvc       seaweedfs-monitor-sc            6m35s
+seaweedfs-monitor-pv2   3Gi        RWX            Retain           Bound       monitoring/grafana-pvc          seaweedfs-monitor-sc            6m35s
+seaweedfs-static        3Gi        RWX            Retain           Bound       storage-demo-ns/seaweedfs-pvc                                   84m
+```
