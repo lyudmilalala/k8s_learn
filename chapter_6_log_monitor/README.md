@@ -103,11 +103,16 @@ If install Grafana individually.
 
 Because the value of config `persistence.enabled` is default to be `false`, we do not need extra config temporarily.
 
+After helm install success message, it takes the grafana pod about 44s to be ready. This is not a bug, but a readinessProbe configure problem.
+
 ```shell
 $ helm repo add grafana https://grafana.github.io/helm-charts 
 $ helm repo update
 $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:11.4.0
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:11.4.0  docker.io/grafana/grafana:11.4.0
+# need for mount to pvc
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/curlimages/curl:8.9.1
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/curlimages/curl:8.9.1  docker.io/curlimages/curl:8.9.1
 $ helm install grafana grafana/grafana -n monitoring
 NAME: grafana
 LAST DEPLOYED: Wed Apr  2 13:55:51 2025
