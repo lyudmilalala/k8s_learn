@@ -93,11 +93,70 @@ INFO:root:[LOG 2025-02-11 17:20:25.882] End task = task1
 
 ### View log in Grafana
 
+[Helm repo](https://artifacthub.io/packages/helm/grafana/grafana)
+
+If install Grafana individually.
+
+Because the value of config `persistence.enabled` is default to be `false`, we do not need extra config temporarily.
+
+```shell
+$ helm repo add grafana https://grafana.github.io/helm-charts 
+$ helm repo update
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:11.4.0
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:11.4.0  docker.io/grafana/grafana:11.4.0
+$ helm install grafana grafana/grafana -n monitoring
+NAME: grafana
+LAST DEPLOYED: Wed Apr  2 13:55:51 2025
+NAMESPACE: monitoring
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get your 'admin' user password by running:
+
+   kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+
+2. The Grafana server can be accessed via port 80 on the following DNS name from within your cluster:
+
+   grafana.monitoring.svc.cluster.local
+
+   Get the Grafana URL to visit by running these commands in the same shell:
+     export POD_NAME=$(kubectl get pods --namespace monitoring -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana" -o jsonpath="{.items[0].metadata.name}")
+     kubectl --namespace monitoring port-forward $POD_NAME 3000
+
+3. Login with the password from step 1 and the username: admin
+#################################################################################
+######   WARNING: Persistence is disabled!!! You will lose your data when   #####
+######            the Grafana pod is terminated.                            #####
+#################################################################################
+$ kubectl get pods -n monitoring
+NAME                                                READY   STATUS    RESTARTS   AGE
+grafana-5846ff7d75-tgbfg                            1/1     Running   0          58s
+$ kubectl get svc -n monitoring
+NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+grafana                               ClusterIP   10.96.94.132     <none>        80/TCP     7m41s
+```
+
+Expose the service to outside of the cluster
+
+```shell
+kubectl expose service grafana -n monitoring --type=NodePort --target-port=80 --port=30101 --name=grafana-ext
+```
+
+Or we can change the service type directly at `helm install`. The parameters and the change in created service is shown as below.
+
+```shell
+$ helm install grafana grafana/grafana -n monitoring --set service.type=NodePort --set service.port=3000 --set service.nodePort=30101
+$ kubectl get svc -n monitoring
+NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+grafana                               NodePort    10.100.166.46    <none>        3000:30101/TCP   32s
+```
+
 通过<host_ip>:31364访问grafana
 
 Access the Grafana dashboard by `<host_ip>:31364`.
 
-Username is `admin`. Password is got by running `kubectl get secret -n loki-logging loki-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode`.
+Username is `admin`. Password is got by running `kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo`.
 
 If you use Windows Powershell, run `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(<secret_val>))`.
 
@@ -119,6 +178,16 @@ You can further filter the logs by interested time range as shown below.
 
 ## Monitor - Prometheus
 
+[Helm repo](https://artifacthub.io/packages/helm/prometheus-community/prometheus)
+
+[Helm chart source](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus)
+
+[prometheus config yaml sample](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml)
+
+[Bind to pvc](https://medium.com/@gayatripawar401/deploy-prometheus-and-grafana-on-kubernetes-using-helm-5aa9d4fbae66)
+
+[Another tutorial](https://medium.com/@akilblanchard09/monitoring-a-kubernetes-cluster-using-prometheus-and-grafana-8e0f21805ea9)
+
 In our example, promethus is installed to the cluster together with loki and grafana if you set `prometheus.enabled: true` in the `loki-local-values.yaml`.
 
 If you do not use loki-stack, you may install prometheus and grafana by the following way.
@@ -127,10 +196,8 @@ If you do not use loki-stack, you may install prometheus and grafana by the foll
 $ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 "prometheus-community" has been added to your repositories
 $ helm repo update
-$ kubectl create namespace monitoring
-kubectl create namespace monitoring
-docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
-docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0  registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0  registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
 $ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.persistentVolume.enabled="false" --set server.persistentVolume.enabled="false"
 $ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.enabled=false --set server.persistentVolume.existingClaim=prometheus-pvc --set server.persistentVolume.subPath=prometheus
 NAME: prometheus
@@ -183,14 +250,6 @@ prometheus-prometheus-node-exporter   ClusterIP   10.101.99.88     <none>       
 prometheus-prometheus-pushgateway     ClusterIP   10.108.161.4     <none>        9091/TCP   26m
 prometheus-server                     ClusterIP   10.105.36.97     <none>        80/TCP     26m
 ```
-
-[Helm chart source](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus)
-
-[prometheus config yaml sample](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml)
-
-[Bind to pvc](https://medium.com/@gayatripawar401/deploy-prometheus-and-grafana-on-kubernetes-using-helm-5aa9d4fbae66)
-
-[Another tutorial](https://medium.com/@akilblanchard09/monitoring-a-kubernetes-cluster-using-prometheus-and-grafana-8e0f21805ea9)
 
 See the prometheus UI...
 
