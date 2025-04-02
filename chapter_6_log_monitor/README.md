@@ -95,6 +95,10 @@ INFO:root:[LOG 2025-02-11 17:20:25.882] End task = task1
 
 [Helm repo](https://artifacthub.io/packages/helm/grafana/grafana)
 
+[Helm chart source](https://github.com/grafana/helm-charts/tree/main/charts/grafana)
+
+[Docs for configuring default data sources and dashboards](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources)
+
 If install Grafana individually.
 
 Because the value of config `persistence.enabled` is default to be `false`, we do not need extra config temporarily.
@@ -150,6 +154,20 @@ $ helm install grafana grafana/grafana -n monitoring --set service.type=NodePort
 $ kubectl get svc -n monitoring
 NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
 grafana                               NodePort    10.100.166.46    <none>        3000:30101/TCP   32s
+```
+
+To add presistence, run install as
+
+```shell
+helm install grafana grafana/grafana -n monitoring --set persistence.enabled=true --set persistence.existingClaim=grafana-pvc --set persistence.subPath=grafana
+```
+
+We also shows a `grafana-values.yaml` with modification in `service`, `persistence`, `datasources`, `dashboards` for your reference. Initialize a grafana release with it as below.
+
+*NOTICE*: To use  `dashboards`,  `dashboardProviders` should also be set.
+
+```shell
+helm install grafana grafana/grafana -n monitoring --values grafana-values.yaml
 ```
 
 通过<host_ip>:31364访问grafana
