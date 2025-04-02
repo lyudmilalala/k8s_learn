@@ -132,13 +132,64 @@ kubectl create namespace monitoring
 docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
 docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0  registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
 $ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.persistentVolume.enabled="false" --set server.persistentVolume.enabled="false"
-$ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.enabled=false --set server.persistentVolume.existingClaim=monitor-pvc --set server.
+$ helm install prometheus prometheus-community/prometheus -n monitoring --set alertmanager.enabled=false --set server.persistentVolume.existingClaim=prometheus-pvc --set server.persistentVolume.subPath=prometheus
+NAME: prometheus
+LAST DEPLOYED: Wed Apr  2 12:37:38 2025
+NAMESPACE: monitoring
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.monitoring.svc.cluster.local
 
+
+Get the Prometheus server URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace monitoring -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace monitoring port-forward $POD_NAME 9090
+
+
+#################################################################################
+######   WARNING: Pod Security Policy has been disabled by default since    #####
+######            it deprecated after k8s 1.25+. use                        #####
+######            (index .Values "prometheus-node-exporter" "rbac"          #####
+###### .          "pspEnabled") with (index .Values                         #####
+######            "prometheus-node-exporter" "rbac" "pspAnnotations")       #####
+######            in case you still need it.                                #####
+#################################################################################
+
+
+The Prometheus PushGateway can be accessed via port 9091 on the following DNS name from within your cluster:
+prometheus-prometheus-pushgateway.monitoring.svc.cluster.local
+
+
+Get the PushGateway URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace monitoring -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace monitoring port-forward $POD_NAME 9091
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+$ kubectl get pods -n monitoring
+NAME                                                READY   STATUS    RESTARTS   AGE
+prometheus-kube-state-metrics-64ddf8d686-h4n9v      1/1     Running   0          32s
+prometheus-prometheus-node-exporter-qxlwl           1/1     Running   0          32s
+prometheus-prometheus-node-exporter-rz86w           1/1     Running   0          32s
+prometheus-prometheus-pushgateway-dd66df54d-vscvc   1/1     Running   0          32s
+prometheus-server-9c759f67-f5ksz                    1/2     Running   0          32s
+$ kubectl get svc -n monitoring
+NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+prometheus-kube-state-metrics         ClusterIP   10.106.187.200   <none>        8080/TCP   26m
+prometheus-prometheus-node-exporter   ClusterIP   10.101.99.88     <none>        9100/TCP   26m
+prometheus-prometheus-pushgateway     ClusterIP   10.108.161.4     <none>        9091/TCP   26m
+prometheus-server                     ClusterIP   10.105.36.97     <none>        80/TCP     26m
 ```
 
 [Helm chart source](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus)
+
 [prometheus config yaml sample](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml)
+
 [Bind to pvc](https://medium.com/@gayatripawar401/deploy-prometheus-and-grafana-on-kubernetes-using-helm-5aa9d4fbae66)
+
 [Another tutorial](https://medium.com/@akilblanchard09/monitoring-a-kubernetes-cluster-using-prometheus-and-grafana-8e0f21805ea9)
 
 See the prometheus UI...
