@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+import traceback
 
 app = Flask(__name__)
 
@@ -23,6 +24,7 @@ def write_file():
             file.write(content)
         return jsonify({"message": f"File {filename} written successfully"}), 200
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/read', methods=['GET'])
@@ -41,6 +43,7 @@ def read_file():
     except FileNotFoundError:
         return jsonify({"error": f"File {file_path} not found"}), 404
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/list', methods=['GET'])
@@ -49,6 +52,7 @@ def list_files():
         files = os.listdir(storage_prefix)
         return jsonify({"files": files}), 200
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

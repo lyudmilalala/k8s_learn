@@ -12,6 +12,8 @@ Install `loki-stack` by helm. Here I have a local copy of helm resource and conf
 
 ```shell
 helm install loki-stack ./loki-stack-2.9.11/loki-stack -n loki-logging --create-namespace  --values loki-local-values.yaml
+
+helm install loki grafana/loki --values loki-values.yaml -n monitoring
 ```
 
 If images failed to download because of GFW, use the following substitutions.
