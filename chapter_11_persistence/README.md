@@ -308,3 +308,19 @@ seaweedfs-monitor-pv1   3Gi        RWX            Retain           Bound       m
 seaweedfs-monitor-pv2   3Gi        RWX            Retain           Bound       monitoring/grafana-pvc          seaweedfs-monitor-sc            6m35s
 seaweedfs-static        3Gi        RWX            Retain           Bound       storage-demo-ns/seaweedfs-pvc                                   84m
 ```
+
+```
+$ kubectl apply -f seaweedfs-sc.yaml
+$ kubectl apply -f seaweedfs-pvc.yaml
+$ kubectl get pvc -n storage-demo-ns
+NAME            STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+seaweedfs-pvc   Bound    pvc-b4d50e82-188b-4e29-a989-13e37ffdb741   1Gi        RWX            seaweedfs-sc   15m
+$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                           STORAGECLASS   REASON   AGE
+pvc-b4d50e82-188b-4e29-a989-13e37ffdb741   1Gi        RWX            Retain           Bound       storage-demo-ns/seaweedfs-pvc   seaweedfs-sc            15m
+```
+
+目前没抓到啥关于自动生成event特别的日志
+
+seaweedfs filer目录，如果没有配置`path`的话则为`/buckets/{pv_name}`，否则为根目录下的`path`
+
