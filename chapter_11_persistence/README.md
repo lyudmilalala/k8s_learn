@@ -132,7 +132,7 @@ Put the three files in directory `seaweedfs-svc` into `/etc/systemd/system`. The
 On our K8s cluster, install `seaweedfs-csi-driver`.
 
 ```shell
-$ git clone git@github.com:seaweedfs/seaweedfs-csi-driver.git
+$ git clone https://github.com/seaweedfs/seaweedfs-csi-driver.git
 $ helm install --set seaweedfsFiler=192.168.1.250:7333 seaweedfs-csi-driver ./seaweedfs-csi-driver/deploy/helm/seaweedfs-csi-driver
 ```
 
