@@ -37,6 +37,23 @@ $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/quay.io/prometheus/promet
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/quay.io/prometheus/prometheus:v2.54.1  quay.io/prometheus/prometheus:v2.54.1
 ```
 
+helm install loki ./loki --values loki-values.yaml -n monitoring
+
+```
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/loki-canary:3.3.2
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/loki-canary:3.3.2 docker.io/grafana/loki-canary:3.3.2
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/loki:3.3.2
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/loki:3.3.2 docker.io/grafana/loki:3.3.2
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nginxinc/nginx-unprivileged:1.27-alpine docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/prom/memcached-exporter:v0.15.0
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/prom/memcached-exporter:v0.15.0 docker.io/prom/memcached-exporter:v0.15.0
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/memcached:1.6.33-alpine
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/memcached:1.6.33-alpine docker.io/memcached:1.6.33-alpine
+docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/kiwigrid/k8s-sidecar:1.28.0 && \
+docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/kiwigrid/k8s-sidecar:1.28.0  docker.io/kiwigrid/k8s-sidecar:1.28.0
+```
+
 Check if the pods and services in namespace `loki-logging` are ready.
 
 ```
