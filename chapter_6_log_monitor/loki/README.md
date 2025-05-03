@@ -13,5 +13,3 @@ Following the steps below to build up the full logging and monitoring system:
 3. Go through the `README.md` in the `prometheus` directory to setup Prometheus for collecting pod resource metrics. 
 
 `test_app` directory includes a simple stateless http web application, and will be included as an test sample in instructions.
-
-All components are installed by `helm`, so you must first have `helm` installed on your k8s master server.

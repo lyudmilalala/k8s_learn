@@ -1,0 +1,10 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: grafana-sc
+provisioner: seaweedfs-csi-driver
+reclaimPolicy: Retain
+parameters:
+  collection: monitor
+  replication: "000"
+  path: /monitor/grafana
