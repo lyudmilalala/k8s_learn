@@ -1,0 +1,13 @@
+server:
+  service:
+    type: NodePort
+    nodePort: 30103
+    port: 9090
+  persistentVolume:
+      enabled: false
+      storageClass: "prometheus-sc"
+      # existingClaim: "prometheus-pvc"
+      # subPath: /prometheus
+      size: 10Gi
+alertmanager:
+  enabled: false

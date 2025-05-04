@@ -1,0 +1,11 @@
+service:
+  enabled: true
+  type: NodePort
+  port: 3000
+  nodePort: 30101
+
+persistence:
+  type: pvc
+  enabled: true
+  storageClassName: grafana-sc
+  size: 10Gi
