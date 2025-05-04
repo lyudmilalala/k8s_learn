@@ -238,21 +238,47 @@ promtail_file_bytes_total{path="/var/log/pods/kube-system_kube-proxy-hlcvd_6fbbc
 
 First add Loki as a data source in your Grafana.
 
-From the home page, visit connection -> data source -> Add
+From the home page, visit Connections -> Data sources -> Add data source
+
+Choose Loki as the data source type, then input url `http://loki-gateway.monitor.svc.cluster.local/` in the **Connection** text input box as guided by the helm installation output. Here we also change our data source **Name** to "myLoki". We keep other configurations as default, and click the **Save & Test** button at the bottom of the page.
+
+![Add data source 1](https://github.com/user-attachments/assets/92857534-3375-4393-a590-038538852809)
+
+![Add data source 2](https://github.com/user-attachments/assets/3b305aec-9849-4de8-b3d5-d2d9cbb50931)
+
+![Add data source 3](https://github.com/user-attachments/assets/3929b600-a129-44ad-ba85-7b46ef34c999)
+
+After successfully adding the data source, go back to the Connections -> Data sources page, click the **Explore** button at the right side of our Loki data source.
+
+![Test Loki connection to Grafana 1](https://github.com/user-attachments/assets/34df0cb1-5818-4eb0-918b-9febb265840e)
+
+In the **Label filters** drop down box, you should see a bunch of choices, such as app, container, namespace. Here we choose namespace as an example, and choose **kube-system** as the value.
+
+Remember to remove the **Line contains** box. Then click the **Run Query** button at the right upper corner of the page.
+
+![Test Loki connection to Grafana 2](https://github.com/user-attachments/assets/b7042939-b14a-49b9-ade4-35ae6ea67953)
+
+You will see logs appears on the page.
+
+![Test Loki connection to Grafana 3](https://github.com/user-attachments/assets/49b2e0f5-f4d9-4efe-8b5a-fce8762ef5cd)
 
 Then visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
 
-Here we choose dashboard No.XXX as an example. Click into its detail, and copy its dashboard ID.
+Here we choose dashboard No.15141 as an example. Click into its detail, and copy its dashboard ID.
 
 ![Copy Id from the Dashboard Detail](https://github.com/user-attachments/assets/b5d3cf71-1f12-4a3a-a035-ecc8b8ad5405)
 
-Go back to your Grafana, choose Create -> Import, and then fill in the dashboard ID in the shown up page. 
+![image](https://github.com/user-attachments/assets/29fe55b8-8b93-438e-83f5-fa87d99a2bf6)
 
-![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/be6d45ba-ba3a-4810-8ae4-5ec152d9fe70)
+Go back to your Grafana, choose Dashboards -> **New** button at the right side of the page -> Import, and then fill in the dashboard ID in the shown up page. 
+
+![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/49b06c77-9210-4013-9648-d950bb6e1118)
+
+![image](https://github.com/user-attachments/assets/813d9290-28cd-4bf7-ac0f-a872a0b25449)
 
 Continue for more configuration, choose Loki to be the data source.
 
-![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/01dd9ac1-ffb8-4b3e-960f-fcee20e0ca41)
+![image](https://github.com/user-attachments/assets/fe672b38-6828-4b41-bb12-f42e7e1879ed)
 
 Then you will see the dashboard shown up.
 
