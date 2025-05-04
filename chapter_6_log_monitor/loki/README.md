@@ -314,9 +314,9 @@ We can see a pv and a pvc have been dynamically created for Loki. Now even when 
 
 ```shell
 $ kubectl get pv
-
+pvc-44f6ba7c-b4d7-4262-a2c8-8ac2a5e20f73   10Gi       RWO            Retain           Bound    monitor/storage-loki-0      loki-sc                  8m
 $ kubectl get pvc -n monitor
-
+storage-loki-0      Bound    pvc-44f6ba7c-b4d7-4262-a2c8-8ac2a5e20f73   10Gi       RWO            loki-sc         8m
 ```
 
 Unlike Grafana and Prometheus, Loki cannot choose to be mounted to an existing pvc.
