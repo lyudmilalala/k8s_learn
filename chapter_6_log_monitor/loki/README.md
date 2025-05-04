@@ -42,9 +42,10 @@ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/agent:v0.
 
 Then we create a customized configuration file `loki3-values.yaml`. The modifications are mainly:
 
-- set `auth_enabled` to `false`, to make it easier to be connected with our Grafana at this time
-- point the storage to `filesystem`, this will let loki store its data to the filesystem in the container, neither memory nor a remote s3 server
-- expose the loki service on a node port `30102`
+- set `deploymentMode` to `SingleBinary`, set the corresponding `singleBinary.replicas` to 1, and other modes' `replicas` to 0.
+- set `auth_enabled` to `false`, to make it easier to be connected with our Grafana at this time.
+- point the storage to `filesystem`, this will let loki store its data to the filesystem in the container, neither memory nor a remote s3 server. Also currently we set the `singleBinary.persistence.enabled` to false to simplify the demo.
+- expose the loki service on a node port `30102`.
 
 Install Loki to the K8s cluster with the configuration file `loki3-values.yaml`.
 
@@ -57,22 +58,107 @@ Here we already download the helm chart to local, so we install it as `helm inst
 Result will be something like this 
 
 ```shell
+NAME: loki
+LAST DEPLOYED: Sun May  4 19:25:44 2025
+NAMESPACE: monitor
+STATUS: deployed
+REVISION: 1
+NOTES:
+***********************************************************************
+ Welcome to Grafana Loki
+ Chart version: 6.24.0
+ Chart Name: loki
+ Loki version: 3.3.2
+***********************************************************************
+
+** Please be patient while the chart is being deployed **
+
+Tip:
+
+  Watch the deployment status using the command: kubectl get pods -w --namespace monitor
+
+If pods are taking too long to schedule make sure pod affinity can be fulfilled in the current cluster.
+
+***********************************************************************
+Installed components:
+***********************************************************************
+* loki
+
+Loki has been deployed as a single binary.
+This means a single pod is handling reads and writes. You can scale that pod vertically by adding more CPU and memory resources.
+
+
+***********************************************************************
+Sending logs to Loki
+***********************************************************************
+
+Loki has been configured with a gateway (nginx) to support reads and writes from a single component.
+
+You can send logs from inside the cluster using the cluster DNS:
+
+http://loki-gateway.monitor.svc.cluster.local/loki/api/v1/push
+
+You can test to send data from outside the cluster by port-forwarding the gateway to your local machine:
+
+  kubectl port-forward --namespace monitor svc/loki-gateway 3100:80 &
+
+And then using http://127.0.0.1:3100/loki/api/v1/push URL as shown below:
+
+```
+curl -H "Content-Type: application/json" -XPOST -s "http://127.0.0.1:3100/loki/api/v1/push"  \
+--data-raw "{\"streams\": [{\"stream\": {\"job\": \"test\"}, \"values\": [[\"$(date +%s)000000000\", \"fizzbuzz\"]]}]}"
+```
+
+Then verify that Loki did received the data using the following command:
+
+```
+curl "http://127.0.0.1:3100/loki/api/v1/query_range" --data-urlencode 'query={job="test"}' | jq .data.result
+```
+
+***********************************************************************
+Connecting Grafana to Loki
+***********************************************************************
+
+If Grafana operates within the cluster, you'll set up a new Loki datasource by utilizing the following URL:
+
+http://loki-gateway.monitor.svc.cluster.local/
+```
+
+The following new pods and services should have been created.
+
+```shell
+# kubectl get pods -n monitor
+NAME                            READY   STATUS    RESTARTS   AGE
+loki-0                          2/2     Running   0          103s
+loki-canary-5b624               1/1     Running   0          104s
+loki-chunks-cache-0             2/2     Running   0          104s
+loki-gateway-545f6777b4-ccqdk   1/1     Running   0          104s
+loki-results-cache-0            2/2     Running   0          104s
+$ kubectl get svc -n monitor
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+loki                 ClusterIP   10.99.207.194    <none>        3100/TCP,9095/TCP    111s
+loki-canary          ClusterIP   10.111.253.150   <none>        3500/TCP             111s
+loki-chunks-cache    ClusterIP   None             <none>        11211/TCP,9150/TCP   111s
+loki-gateway         NodePort    10.110.67.213    <none>        80:30102/TCP         111s
+loki-headless        ClusterIP   None             <none>        3100/TCP             111s
+loki-memberlist      ClusterIP   None             <none>        7946/TCP             111s
+loki-results-cache   ClusterIP   None             <none>        11211/TCP,9150/TCP   111s
 ```
 
 To test the running Loki, run the following command on a k8s node
 
 ```shell
 curl -H "Content-Type: application/json" -XPOST -s "http://127.0.0.1:30102/loki/api/v1/push"  \
---data-raw "{\"streams\": [{\"stream\": {\"job\": \"test\"}, \"values\": [[\"$(date +%s)000000000\", \"fizzbuzz\"]]}]}" -H X-Scope-OrgId:foo
+--data-raw "{\"streams\": [{\"stream\": {\"job\": \"test\"}, \"values\": [[\"$(date +%s)000000000\", \"fizzbuzz\"]]}]}"
 ```
 
 Then verify that Loki did received the data using the following command, and you will see some similar result.
 
 ```shell
-$ curl "http://127.0.0.1:30102/loki/api/v1/query_range" --data-urlencode 'query={job="test"}' -H X-Scope-OrgId:foo | jq .data.result
+$ curl "http://127.0.0.1:30102/loki/api/v1/query_range" --data-urlencode 'query={job="test"}' | jq .data.result
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-100  2845    0  2817  100    28  91292    907 --:--:-- --:--:-- --:--:-- 94833
+100  2848    0  2820  100    28    98k    996 --:--:-- --:--:-- --:--:--  103k
 [
   {
     "stream": {
@@ -82,7 +168,7 @@ $ curl "http://127.0.0.1:30102/loki/api/v1/query_range" --data-urlencode 'query=
     },
     "values": [
       [
-        "1746201587000000000",
+        "1746358195000000000",
         "fizzbuzz"
       ]
     ]
@@ -114,15 +200,38 @@ Here we already download the helm chart to local, so we install it as `helm inst
 Result will be something like this 
 
 ```shell
+NAME: promtail
+LAST DEPLOYED: Sun May  4 19:31:27 2025
+NAMESPACE: monitor
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+***********************************************************************
+ Welcome to Grafana Promtail
+ Chart version: 6.16.6
+ Promtail version: 3.0.0
+***********************************************************************
+
+Verify the application is working by running these commands:
+* kubectl --namespace monitor port-forward daemonset/promtail 3101
+* curl http://127.0.0.1:3101/metrics
 ```
 
-To test the running Promtail, first expose the container port by `kubectl --namespace monitor port-forward daemonset/promtail 3101`.
+To test the running Promtail, first expose the Promtail container port to node port by `kubectl --namespace monitor port-forward daemonset/promtail 3101`.
 
 Then in another session window of the same node, run `curl http://127.0.0.1:3101/metrics`.
 
-You will see logs being pushed into loki like this 
+You will see logs of pods on this node being pushed into loki like this 
 
 ```shell
+promtail_file_bytes_total{path="/var/log/pods/kube-system_calico-node-hkhjb_b51fb727-b70c-4896-b711-46ef42e4bdf0/calico-node/45.log"} 802034
+promtail_file_bytes_total{path="/var/log/pods/kube-system_calico-node-hkhjb_b51fb727-b70c-4896-b711-46ef42e4bdf0/calico-node/46.log"} 471060
+promtail_file_bytes_total{path="/var/log/pods/kube-system_calico-node-hkhjb_b51fb727-b70c-4896-b711-46ef42e4bdf0/install-cni/1.log"} 8403
+promtail_file_bytes_total{path="/var/log/pods/kube-system_calico-node-hkhjb_b51fb727-b70c-4896-b711-46ef42e4bdf0/mount-bpffs/0.log"} 1313
+promtail_file_bytes_total{path="/var/log/pods/kube-system_calico-node-hkhjb_b51fb727-b70c-4896-b711-46ef42e4bdf0/upgrade-ipam/0.log"} 751
+promtail_file_bytes_total{path="/var/log/pods/kube-system_kube-proxy-hlcvd_6fbbc14e-5d62-49d7-ab87-dd98f7fd73c3/kube-proxy/45.log"} 3386
+promtail_file_bytes_total{path="/var/log/pods/kube-system_kube-proxy-hlcvd_6fbbc14e-5d62-49d7-ab87-dd98f7fd73c3/kube-proxy/46.log"} 3384
 ```
 
 ## View logs in Grafana
