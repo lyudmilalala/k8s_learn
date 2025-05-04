@@ -90,9 +90,9 @@ Username is `admin`. Password is got by `kubectl get secret --namespace monitor 
 
 *If you use Windows Powershell, get poassword by `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(<secret_val>))`.*
 
-<Img_Login_page>
+![Grafana Login Page](https://github.com/user-attachments/assets/d8307bc4-15ef-482a-983b-9b731d84c4e3)
 
-<Img_home_page>
+![Grafana Home Pag](https://github.com/user-attachments/assets/c02f3d67-5137-48b5-a6c9-00155a3f3828)
 
 ## Add persistence
 
@@ -124,9 +124,11 @@ We can see a pv and a pvc have been dynamically created for grafana. If you rebo
 
 ```shell
 $ kubectl get pv
-
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM             STORAGECLASS   REASON   AGE
+pvc-65118c8c-6d79-442c-aacb-cefdd71bf15a   10Gi       RWO            Retain           Bound    monitor/grafana   grafana-sc              8s
 $ kubectl get pvc -n monitor
-
+NAME      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+grafana   Bound    pvc-65118c8c-6d79-442c-aacb-cefdd71bf15a   10Gi       RWO            grafana-sc     18s
 ```
 
 Instead of binding to a `StorageClass`, you can also choose to bind your grafana to a specific existing pvc as below.
