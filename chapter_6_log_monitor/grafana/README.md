@@ -1,8 +1,8 @@
 ## Official documentations
 
-[Helm repo](https://artifacthub.io/packages/helm/grafana/grafana)
+[Helm repo of Grafana](https://artifacthub.io/packages/helm/grafana/grafana)
 
-[Helm chart source](https://github.com/grafana/helm-charts/tree/main/charts/grafana)
+[Helm chart source of Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana)
 
 [Docs for configuring default data sources and dashboards](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources)
 
@@ -17,7 +17,7 @@ $ helm repo add grafana https://grafana.github.io/helm-charts
 $ helm repo update
 ```
 
-Also, if you have difficulties pulling docker images from the official repositories, you should pulling the below subsititution images in advance.
+Also, if you have difficulties pulling docker images from the official repositories, use the following substitutions.
 
 ```shell
 $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:11.4.0
@@ -27,7 +27,7 @@ $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/curlimages/curl
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/curlimages/curl:8.9.1  docker.io/curlimages/curl:8.9.1
 ```
 
-Install the Grafana to the K8s cluster.
+Install Grafana to the K8s cluster.
 
 ```shell
 helm install grafana ./grafana-8.8.2.tgz -n monitor --create-namespace --set service.type=NodePort --set service.port=3000 --set service.nodePort=30101
@@ -80,7 +80,15 @@ grafana   NodePort   10.109.24.249   <none>        3000:30101/TCP   2m25s
 
 Then we can access the Grafana dashboard by `<node_ip>:30101`.
 
+If you forget to set up the NodePort service when installing, you can expose the exsiting ClusterIP service later like this.
+
+```shell
+kubectl expose service grafana -n monitor --type=NodePort --target-port=80 --port=30101 --name=grafana-ext
+```
+
 Username is `admin`. Password is got by `kubectl get secret --namespace monitor grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo`.
+
+*If you use Windows Powershell, get poassword by `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(<secret_val>))`.*
 
 <Img_Login_page>
 
@@ -92,7 +100,7 @@ Currently data in grafana is not persistent. If we add some dashboards to grafan
 
 To avoid this situation, we need to mount a persistent storage to grafana.
 
-To achieve this target, we first scratch a `StorageClass` for grafana in `grafana.yaml`, and use `kubectl apply -f grafana.yaml` to create it in the k8s cluster.
+To achieve this target, we first scratch a `StorageClass` for grafana in `grafana-sc.yaml`, and use `kubectl apply -f grafana-sc.yaml` to create it in the k8s cluster.
 
 *Here we use seaweedfs as the storage component, and assume you have already had the seaweedfs-csi-driver in your cluster. You can use NFS, or other storage as your choice. For more about the storage in k8s, please refer to [chapter 11: persistence](https://github.com/lyudmilalala/k8s_learn/tree/master/chapter_11_persistence).*
 
@@ -121,7 +129,7 @@ $ kubectl get pvc -n monitor
 
 ```
 
-Instead of binding to a `StorageClass`, you can bind your grafana to a specific existing pvc as below.
+Instead of binding to a `StorageClass`, you can also choose to bind your grafana to a specific existing pvc as below.
 
 ```yaml
 persistence:
@@ -145,6 +153,23 @@ If you want to initialize your grafana platform with specific datasources and da
 
 **NOTICE**: To use  `dashboards`,  `dashboardProviders` should also be set.
 
-## Uninstall Grafana
+
+## Edit the Dashboard in Grafana
+
+**You would better go through this section after you have learned to deploy Loki or Prometheus in your k8s cluster.**
+
+Here we take dashboard No.XXX as an example. It requires Prometheus as the data source. 
+
+After create the dashboard, we can find out that the graph does not show the CPU usage of each pod as it announced. 
+
+So we select the graph, right-click on it, and choose Edit to see what is wrong.
+
+Here we can see the prometheus query (PromQL) used to draw this graph.
+
+![Customize an element](https://github.com/user-attachments/assets/3243dfb8-c10a-4069-9352-cb11041f321c)
+
+Simply change to the "podName" in the sentence by "pod", and you will see the CPU usage of all pods grouped by their names shows up.
+
+## Uninstall
 
 If you want to uninstall grafana. Run `helm uninstall grafana -n monitor`

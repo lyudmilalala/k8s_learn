@@ -14,4 +14,4 @@ Following the steps below to build up the full logging and monitoring system:
 
 `test_app` directory includes a simple stateless http web application, and will be included as an test sample in instructions.
 
-All components are installed by `helm`, so you must first have `helm` installed on your k8s master server.
+All components are installed by `helm`, so you must first have `helm` installed on your k8s master server. [Follow this link to install helm.](https://helm.sh/docs/intro/install/)
