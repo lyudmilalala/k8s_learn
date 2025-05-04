@@ -25,16 +25,71 @@ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-
 Install Prometheus to the K8s cluster. We 
 
 ```shell
-helm install prometheus prometheus-community/prometheus --set alertmanager.persistentVolume.enabled="false" --set server.persistentVolume.enabled="false" -n monitor --create-namespace
+helm install prometheus ./prometheus-27.5.1.tgz --set alertmanager.persistentVolume.enabled="false" --set server.persistentVolume.enabled="false" -n monitor --create-namespace
 ```
 
-Here we already download the helm chart to local, so we install it as `helm install prometheus prometheus-community/prometheus`. You can directly install the remote chart as `helm install prometheus prometheus-community/prometheus`.
+Here we already download the helm chart to local, so we install it as `helm install prometheus ./prometheus-27.5.1.tgz`. You can directly install the remote chart as `helm install prometheus prometheus-community/prometheus`.
 
 We also disable the alert manager and the persistence in our command to simplify the demo.
 
 Result will be something like this 
 
 ```shell
+NAME: prometheus
+LAST DEPLOYED: Sun May  4 20:49:48 2025
+NAMESPACE: monitor
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.monitor.svc.cluster.local
+
+
+Get the Prometheus server URL by running these commands in the same shell:
+  export NODE_PORT=$(kubectl get --namespace monitor -o jsonpath="{.spec.ports[0].nodePort}" services prometheus-server)
+  export NODE_IP=$(kubectl get nodes --namespace monitor -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+
+#################################################################################
+######   WARNING: Pod Security Policy has been disabled by default since    #####
+######            it deprecated after k8s 1.25+. use                        #####
+######            (index .Values "prometheus-node-exporter" "rbac"          #####
+###### .          "pspEnabled") with (index .Values                         #####
+######            "prometheus-node-exporter" "rbac" "pspAnnotations")       #####
+######            in case you still need it.                                #####
+#################################################################################
+
+
+The Prometheus PushGateway can be accessed via port 9091 on the following DNS name from within your cluster:
+prometheus-prometheus-pushgateway.monitor.svc.cluster.local
+
+
+Get the PushGateway URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace monitor -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace monitor port-forward $POD_NAME 9091
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+```
+
+Check for the pods and services created by Prometheus.
+
+```shell
+$ kubectl get pods -n monitor
+NAME                                                READY   STATUS    RESTARTS   AGE
+prometheus-kube-state-metrics-64ddf8d686-tsxdv      1/1     Running   0          2m40s
+prometheus-prometheus-node-exporter-g5wxm           1/1     Running   0          2m40s
+prometheus-prometheus-node-exporter-xzspt           1/1     Running   0          2m40s
+prometheus-prometheus-pushgateway-dd66df54d-c5s8c   1/1     Running   0          2m40s
+prometheus-server-6997876587-c8f6d                  2/2     Running   0          2m40s
+$ kubectl get svc -n monitor
+NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+prometheus-kube-state-metrics         ClusterIP   10.96.91.146     <none>        8080/TCP             2m53s
+prometheus-prometheus-node-exporter   ClusterIP   10.105.23.246    <none>        9100/TCP             2m53s
+prometheus-prometheus-pushgateway     ClusterIP   10.107.136.83    <none>        9091/TCP             2m53s
+prometheus-server                     NodePort    10.100.127.170   <none>        80:30103/TCP         2m53s
 ```
 
 ## View metrics in Prometheus
@@ -79,11 +134,11 @@ We first scratch a `StorageClass` for grafana in `prometheus-sc.yaml`, and use `
 Then we bind the existing grafana release to this `StorageClass`.  We modify the `persistence` section in `prometheus-values.yaml` to below:
 
 ```yaml
-persistence:
-  type: pvc
-  enabled: true
-  storageClassName: prometheus-sc
-  size: 10Gi
+server:
+  persistentVolume:
+      enabled: false
+      storageClass: "prometheus-sc"
+      size: 10Gi
 ```
 
 To rolling outdated presistent data to avoid running out of disk space...
@@ -91,32 +146,30 @@ To rolling outdated presistent data to avoid running out of disk space...
 We upgrade our release with the new configuration file.
 
 ```shell
-helm upgrade prometheus prometheus-community/prometheus -n monitor --values prometheus-values.yaml
+helm upgrade prometheus ./prometheus-27.5.1.tgz -n monitor --values prometheus-values.yaml
 ```
 
 We can see a pv and a pvc have been dynamically created for Prometheus. Now even when rebooting your k8s server now, the performance metrics data will not be lost.
 
 ```shell
 $ kubectl get pv
-
+pvc-e8e26372-23e8-4b0a-95f2-3007f57a903e   10Gi       RWO            Retain           Bound    monitor/prometheus-server   prometheus-sc            4m8s
 $ kubectl get pvc -n monitor
-
+prometheus-server   Bound    pvc-e8e26372-23e8-4b0a-95f2-3007f57a903e   10Gi       RWO            prometheus-sc   4m35s
 ```
 
 Instead of binding to a `StorageClass`, you can also choose to bind your Prometheus to a specific existing pvc as below.
 
 ```yaml
-persistence:
-  type: pvc
-  enabled: true
+server:
+  persistentVolume:
+      enabled: false
 #   comment the storageClassName line
-#   storageClassName: grafana-sc
-  size: 10Gi
+#   storageClass: "prometheus-sc"
+      existingClaim: "prometheus-pvc"
 #   you can even include a subPath
-  subPath: "prometheus"
-  existingClaim: prometheus-pvc
-  accessModes:
-    - ReadWriteOnce
+      subPath: /prometheus
+      size: 10Gi
 ```
 
 **References**
