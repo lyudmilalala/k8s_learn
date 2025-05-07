@@ -25,6 +25,8 @@ $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana
 # need for mount to pvc, if not mount to a volume, no need to pull it
 $ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/curlimages/curl:8.9.1
 $ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/curlimages/curl:8.9.1  docker.io/curlimages/curl:8.9.1
+$ docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/busybox:1.31.1
+$ docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/busybox:1.31.1 docker.io/library/busybox:1.31.1
 ```
 
 Install Grafana to the K8s cluster.
