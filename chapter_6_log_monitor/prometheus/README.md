@@ -96,11 +96,27 @@ prometheus-server                     NodePort    10.100.127.170   <none>       
 
 ## View metrics in Prometheus
 
-First add Loki as a data source in your Grafana.
+First add Prometheus as a data source in your Grafana.
 
-From the home page, visit connection -> data source -> Add
+From the home page, visit Connections -> Data sources -> Add data source
 
-Then visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
+Choose Prometheus as the data source type, then input url http://prometheus-server.monitor.svc.cluster.local/ in the Connection text input box as guided by the helm installation output. Here we also change our data source Name to "myPrometheus". We keep other configurations as default, and click the Save & Test button at the bottom of the page.
+
+![Add data source 1](https://github.com/user-attachments/assets/92857534-3375-4393-a590-038538852809)
+
+![Add data source 2](https://github.com/user-attachments/assets/b842444e-9720-4696-bc67-7f9364f10e87)
+
+![Add data source 3](https://github.com/user-attachments/assets/5524d19d-c342-4846-9368-eaa0c7bba5f2)
+
+After successfully adding the data source, go to the **Explore** page. Choose our Prometheus data source as the **Outline**. 
+
+Then randomly choose some **Metrics** and **Label Filters** (you should see a bunch of options in a dropdown list when clicking into the input boxes), and click the **Run query** button at the right upper corner of the page.
+
+![Test Prometheus connection to Grafana 1](https://github.com/user-attachments/assets/65403c23-62b2-494f-b23a-b589774f0d01)
+
+## Import a wonderful Dashboard
+
+Unlike logs, we want to see all different kinds of queries at one time. It will cost a lot of work if we create them all by ourselves. Fortunately, Grafana offers some dashboards created by the community. You can visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
 
 Some useful dashboards are
 
@@ -111,17 +127,21 @@ Here we choose dashboard No. 12740 as an example. Click into its detail, and cop
 
 ![Copy Id from the Dashboard Detail](https://github.com/user-attachments/assets/b5d3cf71-1f12-4a3a-a035-ecc8b8ad5405)
 
-Go back to your Grafana, choose Create -> Import, and then fill in the dashboard ID in the shown up page. 
+Go back to your Grafana, choose Dashboards -> **New** button at the right side of the page -> Import.
 
-![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/be6d45ba-ba3a-4810-8ae4-5ec152d9fe70)
+![Initialize Dashboard 1](https://github.com/user-attachments/assets/a71bdc9b-f490-4e22-87f8-9f478b6987ad)
 
-Continue for more configuration, choose Loki to be the data source.
+Fill in the dashboard ID in the shown up page. 
 
-![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/01dd9ac1-ffb8-4b3e-960f-fcee20e0ca41)
+![Initialize Dashboard 2](https://github.com/user-attachments/assets/19a279f4-b1c5-408d-9a47-28bf8b81b24f)
+
+Continue for more configuration, choose your prometheus data source to be the data source.
+
+![Initialize Dashboard 3](https://github.com/user-attachments/assets/e4690849-dd7b-4898-95ae-7aea01a427b7)
 
 Then you will see the dashboard shown up.
 
-![New Dashboard](https://github.com/user-attachments/assets/72c88c5b-7703-4f34-a7d2-c17925c4ae96)
+![New Dashboard](https://github.com/user-attachments/assets/5fb60c1d-78c8-4aad-8979-02965642fe58)
 
 You can also create your own dashboards using customized PromQL. A collection of useful prometheus alert rules can be found at [Awesome Prometheus Alerts](https://github.com/asifMuzammil/awesome-prometheus-alerts).
 
@@ -141,6 +161,13 @@ server:
       enabled: false
       storageClass: "prometheus-sc"
       size: 10Gi
+```
+
+If you want to discard the outdated logs, add the `server.retention` config.
+
+```yaml
+server:
+    retention: "2d"
 ```
 
 To rolling outdated presistent data to avoid running out of disk space...
