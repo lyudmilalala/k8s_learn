@@ -262,28 +262,6 @@ You will see logs appears on the page.
 
 ![Test Loki connection to Grafana 3](https://github.com/user-attachments/assets/49b2e0f5-f4d9-4efe-8b5a-fce8762ef5cd)
 
-Then visit the [Grafana Dashboard](https://grafana.com/grafana/dashboards/) website to search for a desired dashboard.
-
-Here we choose dashboard No.15141 as an example. Click into its detail, and copy its dashboard ID.
-
-![Copy Id from the Dashboard Detail](https://github.com/user-attachments/assets/b5d3cf71-1f12-4a3a-a035-ecc8b8ad5405)
-
-![image](https://github.com/user-attachments/assets/29fe55b8-8b93-438e-83f5-fa87d99a2bf6)
-
-Go back to your Grafana, choose Dashboards -> **New** button at the right side of the page -> Import, and then fill in the dashboard ID in the shown up page. 
-
-![Initialize Dashboard Configuration 1](https://github.com/user-attachments/assets/49b06c77-9210-4013-9648-d950bb6e1118)
-
-![image](https://github.com/user-attachments/assets/813d9290-28cd-4bf7-ac0f-a872a0b25449)
-
-Continue for more configuration, choose Loki to be the data source.
-
-![image](https://github.com/user-attachments/assets/fe672b38-6828-4b41-bb12-f42e7e1879ed)
-
-Then you will see the dashboard shown up.
-
-![New Dashboard](https://github.com/user-attachments/assets/72c88c5b-7703-4f34-a7d2-c17925c4ae96)
-
 ## Add persistence
 
 Currently data in Loki is not persistent. If we reboot the k8s servers. we will lose the existing log data. To avoid this situation, we need to mount a persistent storage to Loki.
@@ -302,12 +280,26 @@ persistence:
   size: 10Gi
 ```
 
-To rolling outdated presistent data to avoid running out of disk space...
+If you want to discard the outdated logs, update the `compactor` and `limits_config` config.
+
+```yaml
+ compactor:
+    working_directory: /tmp/loki/retention
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    delete_request_store: filesystem
+limits_config:
+    allow_structured_metadata: true
+    volume_enabled: true
+    retention_period: 48h
+
+```
 
 We upgrade our release with the new configuration file.
 
 ```shell
-helm upgrade loki ./loki-6.24.0 -n monitor --values loki3-values.yaml
+helm upgrade loki ./loki-6.24.0.tgz -n monitor --values loki3-values.yaml
 ```
 
 We can see a pv and a pvc have been dynamically created for Loki. Now even when rebooting your k8s server now, the log data will not be lost.
