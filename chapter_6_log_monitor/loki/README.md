@@ -50,7 +50,7 @@ Then we create a customized configuration file `loki3-values.yaml`. The modifica
 Install Loki to the K8s cluster with the configuration file `loki3-values.yaml`.
 
 ```shell
-helm install loki ./loki-6.24.0 --values loki3-values.yaml -n monitor --create-namespace
+helm install loki ./loki-6.24.0.tgz --values loki3-values.yaml -n monitor --create-namespace
 ```
 
 Here we already download the helm chart to local, so we install it as `helm install loki ./loki-6.24.0`. You can directly install the remote chart as `helm install loki grafana/loki`.
