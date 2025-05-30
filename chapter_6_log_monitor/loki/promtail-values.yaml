@@ -1,0 +1,25 @@
+# -- Default volumes that are mounted into pods. In most cases, these should not be changed.
+# Use `extraVolumes`/`extraVolumeMounts` for additional custom volumes.
+# @default -- See `values.yaml`
+defaultVolumes:
+  - name: run
+    hostPath:
+      path: /run/promtail
+  - name: containers
+    hostPath:
+      path: /data/docker/containers
+  - name: pods
+    hostPath:
+      path: /var/log/pods
+
+# -- Default volume mounts. Corresponds to `volumes`.
+# @default -- See `values.yaml`
+defaultVolumeMounts:
+  - name: run
+    mountPath: /run/promtail
+  - name: containers
+    mountPath: /data/docker/containers
+    readOnly: true
+  - name: pods
+    mountPath: /var/log/pods
+    readOnly: true
