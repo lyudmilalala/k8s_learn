@@ -20,11 +20,18 @@ loki:
       # s3: http://123:456@192.168.1.250:8333
       #  s3forcepathstyle: false
       # bucketnames: loki-chunk
+  compactor:
+    working_directory: /tmp/retention
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    delete_request_store: filesystem
   pattern_ingester:
       enabled: true
   limits_config:
     allow_structured_metadata: true
     volume_enabled: true
+    retention_period: 48h
   querier:
     max_concurrent: 4
   storage:

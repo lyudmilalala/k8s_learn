@@ -94,7 +94,9 @@ prometheus-prometheus-pushgateway     ClusterIP   10.107.136.83    <none>       
 prometheus-server                     NodePort    10.100.127.170   <none>        80:30103/TCP         2m53s
 ```
 
-## View metrics in Prometheus
+If you visit `http://$NODE_IP:$NODE_PORT`, in our case is `http://$NODE_IP:30101`, by browser, you should also see the Prometheus dashboard.
+
+## View k8s metrics in Prometheus
 
 First add Prometheus as a data source in your Grafana.
 
@@ -210,3 +212,188 @@ server:
 ## Uninstall
 
 If you want to uninstall prometheus. Run `helm uninstall prometheus -n monitor`
+
+## Collect server node metrics by Prometheus and show them on Grafana
+
+For collecting server metrics, you need the tool **Node Exporter**.
+
+Prometheus on K8s automatically creates a node exporter deamon set, which ensures a node exporter pod is deployed on each K8s node. Thus if you just want to monitor servers in the K8s cluster, directly go for importing aashboard No. 1860. You will see a comprehensive dashboard as below.
+
+If you also want to monitor some servers outside the K8s cluster, install **Node Exporter** on each of these server. Ensure `/usr/local/bin` is in your `$PATH`.
+
+```shell
+$ wget https://github.com/prometheus/node_exporter/releases/download/v1.8.1/node_exporter-1.8.1.linux-amd64.tar.gz
+$ tar xvf node_exporter-*.tar.gz
+$ chown root:root node_exporter-1.8.1.linux-amd64/node_exporter 
+$ cp node_exporter-1.8.1.linux-amd64/node_exporter /usr/local/bin
+$ node_exporter --version
+node_exporter, version 1.8.1 (branch: HEAD, revision: 400c3979931613db930ea035f39ce7b377cdbb5b)
+  build user:       root@7afbff271a3f
+  build date:       20240521-18:36:22
+  go version:       go1.22.3
+  platform:         linux/amd64
+  tags:             unknown
+```
+
+Then create a systemd service for the node exporter, and start it as below.
+
+```shell
+$ cat <<EOF | sudo tee /etc/systemd/system/node-exporter.service
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+ExecStart=/usr/local/bin/node_exporter \
+  --web.listen-address=:9100 \
+  --collector.systemd \
+  --collector.filesystem.ignored-mount-points="^/(sys|proc|dev|run)($|/)" 
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+$ sudo useradd -rs /bin/false node_exporter
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable node-exporter
+$ sudo systemctl start node-exporter
+```
+
+Test whether it works properly.
+
+```shell
+curl -s http://localhost:9100/metrics | grep node_
+```
+
+Update the Prometheus `values.yaml`, add the config below
+
+```yaml
+extraScrapeConfigs: |
+  - job_name: 'external-nodes'
+      static_configs:
+        - targets:
+            - '192.168.1.250:9100'
+          labels:
+            cluster: 'external'  
+      relabel_configs:
+        - source_labels: [__address__]
+          regex: '([^:]+):\d+'
+          target_label: 'instance'
+          replacement: '$1'
+          action: replace
+```
+
+Upgrade the Prometheus helm release in the K8s cluster.
+
+```shell
+helm upgrade prometheus ./prometheus-27.5.1.tgz --values prometheus-values.yaml -n monitor
+```
+
+Visit `http://$NODE_IP:30101/targets` in browser to ensure it has a tab called **external-nodes**.
+
+Then return back to the grafana dashboard No. 1860, change the job to **external-nodes** and you should be able to see data of the new external server.
+
+## Collect MySQL server metrics by Prometheus and show them on Grafana
+
+For collecting server metrics, you need the tool **MySQL Exporter**, install **MySQL Exporter** on each of your host with a mysql server. Ensure `/usr/local/bin` is in your `$PATH`.
+
+```shell
+$  wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.15.0/mysqld_exporter-0.15.0.linux-amd64.tar.gz
+$ tar xvf mysqld_exporter-*.tar.gz
+$ chown root:root mysqld_exporter-0.15.0.linux-amd64/mysqld_exporter
+$ cp mysqld_exporter-0.15.0.linux-amd64/mysqld_exporter /usr/local/bin
+$ mysqld_exporter --version
+mysqld_exporter, version 0.15.0 (branch: HEAD, revision: 6ca2a42f97f3403c7788ff4f374430aa267a6b6b)
+  build user:       root@c4fca471a5b1
+  build date:       20230624-04:09:04
+  go version:       go1.20.5
+  platform:         linux/amd64
+  tags:             netgo
+```
+
+Create a MySQL user with enough permission.
+
+```sql
+CREATE USER 'replica'@'localhost' IDENTIFIED BY 'YourSecurePassword123!' WITH MAX_USER_CONNECTIONS 3;
+grant process, replication slave, replication client, select on  *.* to 'replica'@'%' with grant option;
+FLUSH PRIVILEGES;
+```
+
+Create a `.my.cnf` file at the current directory, put your mysql user name and password in there.
+
+```shell
+$ echo '[client]
+user=replica
+password=YourSecurePassword123!' > .my.cnf
+```
+
+Then create a systemd service for the node exporter, and start it as below.
+
+```shell
+$ cat <<EOF | sudo tee /etc/systemd/system/mysql-exporter.service
+[Unit]
+Description=MySQL Prometheus Exporter
+After=network.target
+
+[Service]
+User=mysql
+Group=mysql
+WorkingDirectory=$(pwd)
+ExecStart=/usr/local/bin/mysqld_exporter \
+  --config.my-cnf=$(pwd)/.my.cnf \
+  --collect.info_schema.processlist \
+  --collect.info_schema.innodb_metrics \
+  --collect.perf_schema.eventsstatements \
+  --collect.perf_schema.eventswaits \
+  --collect.perf_schema.indexiowaits \
+  --collect.perf_schema.tableiowaits \
+  --collect.slave_status
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable mysql-exporter
+$ sudo systemctl start mysql-exporter
+```
+
+Test whether it works properly.
+
+```shell
+$ curl -s http://localhost:9104/metrics | grep 'mysql_up'
+# Check for slave connection info
+$ curl -s http://localhost:9104/metrics | grep 'mysql_slave_status_slave'
+```
+
+Update the Prometheus `values.yaml`, add the config below
+
+```yaml
+extraScrapeConfigs: |
+  - job_name: 'mysql-master'
+    static_configs:
+      - targets: ['192.168.1.248:9104']
+        labels:
+          instance: mysql-master
+          role: master
+  - job_name: 'mysql-slave'
+    static_configs:
+      - targets: ['192.168.1.249:9104']
+        labels:
+          instance: mysql-slave
+          role: slave
+```
+
+Upgrade the Prometheus helm release in the K8s cluster.
+
+```shell
+helm upgrade prometheus ./prometheus-27.5.1.tgz --values prometheus-values.yaml -n monitor
+```
+
+Visit `http://$NODE_IP:30101/targets` in browser to ensure it has a tab called **mysql-master** and another tabl called **mysql-slave**.
+
+Add dashboard No. 7362 to Grafana, then you can see MySQL dashbaord as below.

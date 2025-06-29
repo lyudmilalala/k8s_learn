@@ -9,5 +9,6 @@ server:
       # existingClaim: "prometheus-pvc"
       # subPath: /prometheus
       size: 10Gi
+  retention: "2d"
 alertmanager:
   enabled: false
