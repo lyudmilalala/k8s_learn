@@ -96,6 +96,8 @@ prometheus-server                     NodePort    10.100.127.170   <none>       
 
 If you visit `http://$NODE_IP:$NODE_PORT`, in our case is `http://$NODE_IP:30101`, by browser, you should also see the Prometheus dashboard.
 
+![image](https://github.com/user-attachments/assets/4f23b236-3ec3-4304-a5eb-54f3e70cfb66)
+
 ## View k8s metrics in Prometheus
 
 First add Prometheus as a data source in your Grafana.
@@ -219,6 +221,8 @@ For collecting server metrics, you need the tool **Node Exporter**.
 
 Prometheus on K8s automatically creates a node exporter deamon set, which ensures a node exporter pod is deployed on each K8s node. Thus if you just want to monitor servers in the K8s cluster, directly go for importing aashboard No. 1860. You will see a comprehensive dashboard as below.
 
+![image](https://github.com/user-attachments/assets/3f8a25dc-6ae5-4b08-8bdb-cf07829bbc34)
+
 If you also want to monitor some servers outside the K8s cluster, install **Node Exporter** on each of these server. Ensure `/usr/local/bin` is in your `$PATH`.
 
 ```shell
@@ -294,7 +298,11 @@ helm upgrade prometheus ./prometheus-27.5.1.tgz --values prometheus-values.yaml 
 
 Visit `http://$NODE_IP:30101/targets` in browser to ensure it has a tab called **external-nodes**.
 
+![image](https://github.com/user-attachments/assets/d4ec49ed-0e15-40c3-a6e6-72fea3a032a9)
+
 Then return back to the grafana dashboard No. 1860, change the job to **external-nodes** and you should be able to see data of the new external server.
+
+![image](https://github.com/user-attachments/assets/5da01dbe-6f9e-4765-9150-5d5a1a82f220)
 
 ## Collect MySQL server metrics by Prometheus and show them on Grafana
 
@@ -396,4 +404,8 @@ helm upgrade prometheus ./prometheus-27.5.1.tgz --values prometheus-values.yaml 
 
 Visit `http://$NODE_IP:30101/targets` in browser to ensure it has a tab called **mysql-master** and another tabl called **mysql-slave**.
 
+![image](https://github.com/user-attachments/assets/7d9a8817-eda1-40d9-ac83-7c79a2f8afdb)
+
 Add dashboard No. 7362 to Grafana, then you can see MySQL dashbaord as below.
+
+![image](https://github.com/user-attachments/assets/2583b2ce-17f3-46c5-a6f4-157f6a46e71b)
