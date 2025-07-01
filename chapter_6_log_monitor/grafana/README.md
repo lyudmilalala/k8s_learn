@@ -96,6 +96,12 @@ Username is `admin`. Password is got by `kubectl get secret --namespace monitor 
 
 ![Grafana Home Pag](https://github.com/user-attachments/assets/c02f3d67-5137-48b5-a6c9-00155a3f3828)
 
+To change your admin password, use
+
+```shell
+kubectl exec -it <grafana_pod_name> -n monitor -- grafana-cli admin reset-admin-password SpinQ0827
+```
+
 ## Add persistence
 
 Currently data in grafana is not persistent. If we add some dashboards to grafana, and then reboot the k8s servers. The dashboards we just added will disappear.
