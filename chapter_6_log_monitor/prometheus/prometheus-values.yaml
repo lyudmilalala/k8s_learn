@@ -12,3 +12,5 @@ server:
   retention: "2d"
 alertmanager:
   enabled: false
+prometheus-node-exporter:
+  enabled: false
