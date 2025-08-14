@@ -409,3 +409,333 @@ Visit `http://$NODE_IP:30101/targets` in browser to ensure it has a tab called *
 Add dashboard No. 7362 to Grafana, then you can see MySQL dashbaord as below.
 
 ![image](https://github.com/user-attachments/assets/2583b2ce-17f3-46c5-a6f4-157f6a46e71b)
+
+Based on your Prometheus configuration and directory structure, let me explain the contents and retention behavior:
+
+## Directory Structure Explanation
+
+Each directory with the format `01Kxxxxxx` represents a **TSDB block** containing time-series data for a specific time range:
+
+- **chunks/**: Contains compressed time-series data files (000001, 000002, etc.)
+- **index**: Index file for fast querying of the time-series data
+- **meta.json**: Metadata about the block including time range, stats, and compaction level
+- **tombstones**: Records of deleted time-series data
+- **wal/**: Write-ahead log containing recent data not yet committed to blocks
+- **chunks_head**: Head chunks containing the most recent data
+
+## Answers to Your Questions
+
+### 1. Automatic Deletion with 90d Retention
+
+Yes, files will be automatically deleted after 90 days. Specifically:
+
+- **Complete TSDB blocks** older than 90 days will be deleted entirely
+- This includes the entire directory structure: chunks/, index, meta.json, and tombstones
+- Blocks are deleted when their entire time range is older than the retention period
+- The WAL and head chunks are not subject to the 90d retention as they contain recent data
+
+The retention works at the block level - if a block's time range is completely outside the 90-day window, the entire block directory gets removed.
+
+### 2. Manual Deletion Methods
+
+Yes, you can manually delete data:
+
+**Method A: Using Prometheus Admin API**
+```bash
+# Delete data for specific series
+curl -X POST \
+  -g 'http://192.168.9.116:30103/api/v1/admin/tsdb/delete_series?match[]={job=~".+"}&start=2024-01-01T00:00:00Z&end=2024-02-01T00:00:00Z'
+
+# Clean up the tombstones after deletion
+curl -X POST \
+  http://192.168.9.116:30103/api/v1/admin/tsdb/clean_tombstones
+```
+
+**Method B: Direct File System Deletion (NOT recommended)**
+Manually delete entire block directories, but this requires Prometheus restart and can cause issues.
+
+**Method C: Reduce Retention Temporarily**
+Change retention to a shorter period, restart Prometheus, then change it back.
+
+### 3. Safe Files for Deletion
+
+For safe operation with Prometheus+Grafana:
+
+**Safe to Delete:**
+- Complete TSDB block directories (01Kxxxxxx) that are older than your required data period
+- Individual tombstone files after cleaning with the API
+
+**Never Delete:**
+- **wal/** directory - contains recent unwritten data
+- **chunks_head/** directory - contains current head chunks
+- **lock** file - prevents concurrent access issues
+- **queries.active** - tracks active queries
+- Any block that contains data within your retention period that you still need
+
+## Recommendations
+
+1. **Use the Admin API** for safe data deletion rather than direct file manipulation
+2. **Monitor disk usage** with your existing Prometheus setup
+3. **Test retention behavior** by temporarily setting a shorter retention period to verify it works as expected
+4. **Backup critical data** before any manual deletion operations
+
+## Example Cleanup Script (Use with Caution)
+```bash
+# Check current disk usage
+kubectl exec -it prometheus-server-0 -n monitor -- du -sh /data
+
+# Use Admin API for safe deletion instead of direct file manipulation
+```
+
+The key is to let Prometheus handle retention automatically through its built-in mechanisms rather than manual file deletion to avoid data corruption or service interruption.
+
+Based on your Prometheus configuration and the development log showing your experience with monitoring systems, let me explain how Prometheus works and how it interacts with Loki for log storage and retrieval.
+
+## Prometheus Architecture and Data Storage
+
+### TSDB (Time Series Database) Structure
+
+Prometheus uses a custom TSDB with the following structure:
+
+1. **WAL (Write-Ahead Log)**
+   - Stores recent data that hasn't been committed to persistent blocks yet
+   - Located in the `wal/` directory with segment files (00000378, 00000379, etc.)
+   - Provides durability in case of crashes
+   - Checkpoint directories contain consolidated WAL data
+
+2. **Blocks**
+   - Time-partitioned data stored in directories like `01K05JP5W5X447HNQT54DWE4XP`
+   - Each block contains:
+     - `chunks/`: Compressed time series samples
+     - `index`: Index for fast querying
+     - `meta.json`: Block metadata including time range
+     - `tombstones`: Deleted data records
+
+3. **Data Flow**
+   ```
+   Incoming Metrics → WAL (in-memory) → WAL Files → Blocks (every 2h) → Retention Cleanup
+   ```
+
+### WAL and TSDB Operation
+
+When Prometheus collects metrics:
+
+1. **Write Process**:
+   - Data first written to in-memory WAL buffer
+   - Flushed to WAL files on disk
+   - Periodically compacted into blocks (every 2 hours)
+   - Head chunks (`chunks_head/`) store most recent data
+
+2. **Read Process**:
+   - Queries check both recent data (WAL/head chunks) and historical data (blocks)
+   - Index files enable fast lookups by labels and time ranges
+   - Tombstones mark deleted data
+
+## Loki Log Storage and Retrieval
+
+Based on your development log showing Loki experience, here's how Loki works:
+
+### Log Storage Structure
+
+Loki uses a similar approach but for logs:
+
+1. **Log Streams**:
+   - Logs grouped into streams by labels (job, instance, etc.)
+   - Each stream stored as chunks in object storage or filesystem
+
+2. **Index**:
+   - Stores label pairs and references to chunks
+   - Enables fast lookup of relevant chunks for queries
+
+3. **Data Flow**:
+   ```
+   Logs → Distributor → Ingester (WAL) → Chunk Storage → Compaction
+   ```
+
+### Query Process for Log Retrieval
+
+When you query logs in Grafana for a specific time period:
+
+1. **Query Parsing**:
+   ```
+   {job="mysql-servers"} |= "error" | timestamp >= "2023-01-01" <= "2023-01-02"
+   ```
+
+2. **Index Lookup**:
+   - Loki queries its index for streams matching the label selector (`job="mysql-servers"`)
+   - Returns list of chunks that may contain relevant logs
+
+3. **Chunk Filtering**:
+   - Filters chunks based on time range
+   - Eliminates chunks that don't overlap with query time period
+
+4. **Log Retrieval**:
+   - Loads relevant chunks from storage
+   - Applies additional filters (e.g., `|= "error"`)
+   - Returns results to Grafana
+
+5. **Result Processing**:
+   - Results sorted by timestamp
+   - Formatted according to Grafana panel requirements
+
+## Integration with Your Setup
+
+Based on your configuration:
+
+1. **Prometheus Metrics Collection**:
+   - Scrapes MySQL servers every 30s
+   - Stores metrics with 90-day retention
+   - Accessible via NodePort 30103
+
+2. **Loki Integration**:
+   - Likely configured as a separate service (as seen in your development log)
+   - Grafana connects to both Prometheus (metrics) and Loki (logs)
+   - Correlation possible through shared labels
+
+## Performance Considerations
+
+1. **Prometheus**:
+   - Blocks are immutable, optimized for reads
+   - WAL ensures no data loss during crashes
+   - Retention policy automatically cleans old data
+
+2. **Loki**:
+   - Uses log labels efficiently for indexing
+   - Avoids indexing log content (unlike traditional logging systems)
+   - Horizontal scaling through multiple ingesters
+
+When you query logs in Grafana, Loki efficiently locates the relevant log chunks through its label-based index, filters by time range, and returns the matching log entries without needing to scan through all stored logs.
+
+Great question! Let me explain the WAL (Write-Ahead Log) data format and storage mechanism in both Loki and Prometheus.
+
+# What is WAL (Write-Ahead Log)
+
+WAL stands for Write-Ahead Log. It's a log-like structure that stores all the data points that Prometheus receives. It's a way to ensure that data is not lost in case of a crash or other unexpected shutdown.
+
+## WAL in Prometheus
+
+### Physical Storage
+- **Location**: Stored on disk as binary files in the `wal/` directory
+- **Not in memory**: While there's an in-memory buffer for performance, the WAL is primarily a disk-based persistence mechanism
+- **Not in TSDB blocks**: WAL is separate from TSDB blocks - it's a temporary storage before data is compacted into blocks
+
+### Data Format
+The WAL uses a **binary format**, not JSON. It consists of:
+
+1. **Segments**: Sequential numbered files (00000000, 00000001, etc.)
+2. **Records**: Each segment contains a series of records with this structure:
+   ```
+   +------------------------------------+
+   | Length (4 bytes)                   |
+   +------------------------------------+
+   | CRC32 Checksum (4 bytes)           |
+   +------------------------------------+
+   | Data (variable length)             |
+   +------------------------------------+
+   ```
+
+3. **Record Types**:
+   - **Series records**: Store metric metadata (labels)
+   - **Samples records**: Store actual metric values with timestamps
+   - **Tombstone records**: Mark deleted time series
+   - **Exemplar records**: Store exemplar data (tracing information)
+
+### Example WAL Content Structure
+```bash
+# WAL directory structure
+wal/
+├── 00000000          # Segment file
+├── 00000001          # Next segment
+├── checkpoint.000001 # Checkpoint (compacted WAL)
+└── checkpoint.000002
+```
+
+The binary format is optimized for:
+- Fast sequential writing
+- Efficient crash recovery
+- Compact storage
+
+## WAL in Loki
+
+### Physical Storage
+- **Location**: Stored on disk in the `wal/` directory
+- **Also disk-based**: Like Prometheus, primarily stored on disk for durability
+- **Separate from chunks**: WAL is temporary storage before logs are flushed to chunk storage
+
+### Data Format
+Loki's WAL also uses a **binary format**, not JSON:
+
+1. **Segments**: Sequential numbered files
+2. **Entries**: Each entry contains:
+   - Stream labels
+   - Log line content
+   - Timestamp
+   - Additional metadata
+
+### Example WAL Structure in Loki
+```bash
+# Loki WAL directory
+wal/
+├── 00007060          # WAL segment
+├── 00007061          # Next segment
+└── checkpoint.007059 # Checkpoint
+```
+
+## Key Differences Between Prometheus and Loki WAL
+
+| Aspect | Prometheus WAL | Loki WAL |
+|--------|----------------|----------|
+| **Purpose** | Store time-series metrics temporarily | Store log entries temporarily |
+| **Data Type** | Numeric samples with timestamps | Text log lines with metadata |
+| **Label Handling** | Series records store metric labels | Stream labels associated with log entries |
+| **Format** | Binary format optimized for metrics | Binary format optimized for logs |
+| **Compaction** | Checkpoints created periodically | Checkpoints for flushed data |
+
+## WAL Processing Flow
+
+### Prometheus Flow:
+```
+1. Metrics received → 
+2. Written to in-memory buffer → 
+3. Flushed to WAL segment files → 
+4. Processed and stored in memory (head chunks) → 
+5. Compacted into TSDB blocks every 2 hours → 
+6. WAL segments deleted after compaction
+```
+
+### Loki Flow:
+```
+1. Log entries received → 
+2. Written to in-memory buffer → 
+3. Flushed to WAL segment files → 
+4. Batched and compressed into chunks → 
+5. Chunks uploaded to storage → 
+6. WAL segments deleted after successful upload
+```
+
+## Why Binary Format Instead of JSON?
+
+1. **Performance**: Binary format is much faster to write and parse
+2. **Space Efficiency**: Significantly smaller than text-based formats
+3. **Reliability**: Structured format with checksums prevents corruption
+4. **Streaming**: Efficient for sequential reading during recovery
+
+## WAL Recovery Process
+
+When Prometheus/Loki restarts:
+
+1. **Read WAL segments**: Sequentially read all segment files
+2. **Reconstruct state**: Rebuild in-memory state from WAL records
+3. **Continue operation**: Resume normal operation with recovered data
+
+This ensures no data loss even in case of unexpected shutdowns.
+
+## Summary
+
+- **WAL is disk-based**, not memory-only
+- **Uses binary format**, not JSON
+- **Stored separately** from TSDB (Prometheus) or chunk storage (Loki)
+- **Optimized for durability and performance**
+- **Automatically managed** by the system with periodic cleanup
+
+The binary format is specifically designed for the high-throughput, reliable storage needs of time-series data and logs, making it much more efficient than text-based formats like JSON.

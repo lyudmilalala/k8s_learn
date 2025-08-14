@@ -14,17 +14,17 @@ loki:
           period: 24h
   storage_config:
     filesystem:
-      directory: /tmp/loki/chunks
+      directory: /var/loki/chunks
   # storage_config:
   # aws:
       # s3: http://123:456@192.168.1.250:8333
       #  s3forcepathstyle: false
       # bucketnames: loki-chunk
   compactor:
-    working_directory: /tmp/retention
+    working_directory: /var/loki/retention
     compaction_interval: 10m
     retention_enabled: true
-    retention_delete_delay: 2h
+    retention_delete_delay: 4h
     delete_request_store: filesystem
   pattern_ingester:
       enabled: true

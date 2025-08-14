@@ -345,3 +345,215 @@ Return if deployment mode is distributed
 If you want to uninstall loki. Run `helm uninstall loki -n monitor`
 
 If you want to uninstall promtail. Run `helm uninstall promtail -n monitor`
+
+## Loki Definitions
+
+### 1. Tenant（租户）
+- 定义：Loki 的多租户机制，每个 tenant 拥有独立的数据和查询空间。
+- 作用：隔离不同用户或系统的数据，防止互相访问和干扰。
+- 标识：通过 HTTP Header `X-Scope-OrgID` 或配置指定，单租户模式下通常为 `fake`。
+
+### 2. Stream（日志流）
+- 定义：一组具有相同 label（标签）组合的日志数据集合。
+- 作用：Loki 按 label 组织日志，label 唯一确定一个 stream。
+- 标识：如 `{job="app", instance="1"}`，每种 label 组合对应一个 stream。
+
+### 3. Chunk（数据块）
+- 定义：stream 内一段时间范围内的日志数据的压缩存储单元。
+- 作用：提升存储和查询效率，chunk 是 Loki 存储的最小单位。
+- 标识：每个 chunk 有唯一 ID，包含 stream 的部分日志（如 1h 或 2MB）。
+
+---
+
+简要总结：
+- tenant：数据隔离空间
+- stream：标签唯一确定的日志流
+- chunk：日志流内的压缩数据块
+# Loki
+
+## Loki Directory Structure Explanation
+
+1. **`rules/`** - Contains recording rules and alerting rules configuration files
+2. **`tsdb-shipper-active/multitenant/`** - Active TSDB index files organized by time periods (loki_index_20270 through loki_index_20308)
+3. **`tsdb-shipper-active/per_tenant/`** - Tenant-specific configurations (empty in your case)
+4. **`tsdb-shipper-active/scratch/`** - Temporary working directory for index operations
+5. **`tsdb-shipper-active/uploader/`** - Files being prepared for upload to storage
+6. **`tsdb-shipper-active/wal/`** - Write-ahead logs for index operations
+7. **`tsdb-shipper-cache/`** - Cached TSDB files, likely compacted segments
+8. **`wal/`** - Main write-ahead logs containing recent log entries not yet flushed to chunks
+
+9. **`chunks/`** - 存储实际日志数据块（chunk），每个 chunk 代表一段时间内某个 label stream 的日志。结构为 `chunks/<tenant>/<stream_id>/<chunk_id>`，文件为压缩二进制格式。
+10. **`retention/`** - Loki compactor 用于数据保留和删除的工作目录，包括删除请求、标记文件和 retention 相关的元数据。
+
+## Answers to Your Questions
+
+### 1. Will files be automatically deleted after 90 days with retention_period: 90d?
+
+Yes, with your configuration:
+```yaml
+compactor:
+  retention_enabled: true
+  retention_delete_delay: 24h
+limits_config:
+  retention_period: 90d
+```
+
+Files older than 90 days will be automatically deleted. Specifically:
+- **Index files** in `tsdb-shipper-active/multitenant/loki_index_*` directories
+- **Chunk files** in `/tmp/loki/chunks` (though not visible in your directory listing)
+- **TSDB files** in `tsdb-shipper-cache/` 
+- Associated **WAL files** that are older than the retention period
+
+The deletion process works as follows:
+1. Compactor identifies data older than 90 days
+2. Marks them for deletion with a 24-hour delay (`retention_delete_delay`)
+3. Actually removes the files after the delay period
+
+### 2. Can you manually delete files older than a certain time?
+
+Yes, but it's not recommended to manually delete files directly. Instead, use the proper API approach:
+
+```bash
+# Using curl to set retention for a specific tenant (replace with your tenant ID or use "fake" for single tenant)
+curl -X POST "http://<loki-gateway>:30102/loki/api/v1/delete" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "selector": "{job=~\".*\"}",
+    "start": "2024-01-01T00:00:00Z",
+    "end": "2024-06-01T00:00:00Z"
+  }'
+
+# Or modify the retention period temporarily in your config and restart
+```
+
+If you absolutely must manually delete files:
+1. Stop the Loki pod first
+2. Delete files older than your desired time
+3. Restart the Loki pod
+
+### 3. Which files can be deleted without affecting Loki+Grafana operation?
+
+Files that can be safely deleted (oldest first):
+1. **WAL checkpoint files** - Older checkpoint directories in `wal/`
+2. **Old WAL segments** - Log segments in `wal/` that have been flushed to persistent storage
+3. **TSDB index directories** - Older `loki_index_*` directories in `tsdb-shipper-active/multitenant/`
+4. **Cached TSDB files** - Files in `tsdb-shipper-cache/` corresponding to old periods
+
+Files that should NOT be deleted:
+1. **Active WAL files** - Recent segments in `wal/` that haven't been flushed yet
+2. **Current index directories** - The most recent `loki_index_*` directories
+3. **Configuration files** - Anything in `rules/` that you actively use
+4. **Active TSDB shipper directories** - `scratch/`, `uploader/`, and current `wal/` directories under `tsdb-shipper-active/`
+
+## Recommendation
+
+Instead of manual deletion, rely on Loki's built-in retention mechanism. Your current configuration with `retention_enabled: true` and `retention_period: 90d` should automatically handle cleanup. If you need shorter retention, simply adjust the `retention_period` value in your config and redeploy.
+
+# Loki Working Mechanism: TSDB and WAL Explained
+
+## Overview of Loki Architecture
+
+Loki is a horizontally scalable, highly available log aggregation system inspired by Prometheus. It works differently from traditional log systems by indexing only metadata (labels) rather than full log content, making it more efficient for Kubernetes and cloud-native environments.
+
+## Core Components and Data Flow
+
+### 1. Write Path (Log Ingestion)
+
+#### WAL (Write-Ahead Log)
+- **Purpose**: Ensures durability of incoming log entries before they are flushed to persistent storage
+- **Location**: Stored in `wal/` directory in your deployment
+- **Structure**: Contains segments like `00007060`, `00007061` and checkpoints like `checkpoint.007059`
+- **Function**: 
+  - Receives incoming log streams
+  - Temporarily stores log entries in sequential files
+  - Provides crash recovery mechanism (if Loki crashes, it can replay from WAL)
+  - Periodically creates checkpoints to compact older entries
+
+#### TSDB Shipper Active Directory
+- **Purpose**: Manages indexing of log entries for efficient querying
+- **Location**: `tsdb-shipper-active/` directory
+- **Structure**:
+  - `multitenant/loki_index_*`: Index files organized by time periods
+  - `wal/`: Write-ahead logs for index operations
+  - `scratch/`: Temporary working directory for index processing
+
+### 2. Storage Layer
+
+#### Chunk Storage
+- **Location**: `/tmp/loki/chunks` (in your filesystem configuration)
+- **Content**: Compressed log chunks containing actual log content
+- **Organization**: Grouped by tenant and time period
+- **Format**: Binary format optimized for compression and retrieval
+
+#### Index Storage
+- **Location**: `tsdb-shipper-active/multitenant/loki_index_*` directories
+- **Content**: Index entries mapping labels and time ranges to chunk locations
+- **Format**: TSDB (Time Series Database) format similar to Prometheus
+
+## Read Path (Log Querying)
+
+When you query logs in Grafana for a specific time period, here's what happens:
+
+### 1. Query Processing
+```
+Grafana Query → Loki Query Frontend → Loki Querier
+```
+
+### 2. Index Lookup
+1. **Label Matching**: Loki first identifies which series match your label selectors (e.g., `{job="nginx"}`)
+2. **Time Range Filtering**: Filters index entries to only those within your specified time range
+3. **Index Scanning**: Scans TSDB index files in `tsdb-shipper-active/multitenant/loki_index_*` directories
+4. **Chunk Identification**: Retrieves references to chunks that contain matching log entries
+
+### 3. Chunk Retrieval
+1. **Chunk Location Resolution**: Uses index data to determine which chunks contain relevant logs
+2. **Chunk Fetching**: Retrieves compressed chunks from filesystem storage
+3. **Decompression**: Decompresses chunks in memory
+4. **Filtering**: Applies any additional filtering (regex, etc.) to the decompressed log lines
+
+### 4. Result Assembly
+1. **Sorting**: Orders results chronologically
+2. **Limiting**: Applies limits if specified in the query
+3. **Return**: Sends results back to Grafana for display
+
+## Detailed TSDB and WAL Interaction
+
+### WAL Processing Flow:
+1. Incoming logs are written to WAL (`wal/` directory)
+2. Logs are periodically batched and compressed into chunks
+3. Chunks are uploaded to persistent storage
+4. Index entries are created in TSDB format
+5. TSDB entries are written to shipper WAL (`tsdb-shipper-active/wal/`)
+6. Index files are periodically flushed to persistent storage
+7. WAL segments are cleaned up after data is successfully persisted
+
+### TSDB Index Structure:
+- **Time-based Sharding**: Index files are organized by time periods (visible as `loki_index_20270` through `loki_index_20308`)
+- **Label Indexing**: Each index contains mappings from label combinations to chunk references
+- **Series Chunks**: Each series (unique label combination) has associated chunks with time range information
+
+## Example Query Flow
+
+When you query logs for the last 1 hour in Grafana:
+
+1. **Query Parsing**: Grafana sends query with time range and label selectors to Loki
+2. **Index Scan**: Loki scans relevant TSDB index files (based on time range)
+3. **Series Matching**: Finds all series that match your label selectors
+4. **Chunk Discovery**: Identifies which chunks contain logs in the time range
+5. **Chunk Retrieval**: Fetches matching chunks from filesystem
+6. **Log Extraction**: Decompresses and extracts individual log lines
+7. **Filtering/Sorting**: Applies any additional filters and sorts results
+8. **Response**: Returns logs to Grafana for display
+
+## Retention and Cleanup Process
+
+Your retention configuration works as follows:
+1. **Compactor Component**: Runs periodically (every 10 minutes based on your config)
+2. **Age Detection**: Identifies chunks and indexes older than 90 days
+3. **Mark for Deletion**: Marks old data for deletion with 24-hour delay
+4. **Physical Deletion**: Removes actual files after delay period
+5. **Index Cleanup**: Updates TSDB indexes to remove references to deleted chunks
+
+This approach ensures that Grafana queries for recent data remain fast and efficient while automatically managing storage space through retention policies.
+
+## 如何使用loki-gateway删除日志？
