@@ -12,7 +12,7 @@ This is a guide for learning k8s, involving multiple different topics required f
 8. Resource Limit
 9. HPA
 10. Job （TODO the job creator part）
-11. Persist Data to Volume  （TODO）
+11. Persist Data to Volume
 12. Call external services (TODO)
 13. Operator  （TODO）
 14. FaaS Framework KNative  （TODO）

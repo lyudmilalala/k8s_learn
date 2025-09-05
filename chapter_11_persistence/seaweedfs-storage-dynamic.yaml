@@ -1,0 +1,24 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: seaweedfs-sc
+provisioner: seaweedfs-csi-driver
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+parameters:
+  collection: collection1
+  replication: "000"
+  path: /data/seaweedfs/csi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-pvc
+  namespace: storage-demo-ns
+spec:
+  storageClassName: seaweedfs-sc
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
