@@ -180,53 +180,75 @@ $ curl 'http://47.119.148.12:30050/status'
 
 ### 3.3 Deletion cost
 
-Pod with lower deletion cost will be deleted first.
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: busybox-ns
-
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: busybox-deploy-1
-  namespace: busybox-ns
-  labels:
-    app: busybox-app-1
-spec:
-  replicas: 5
-  selector:
-    matchLabels:
-      app: busybox-app-1
-  template:
-    metadata:
-      labels:
-        app: busybox-app-1
-    spec:
-      containers:
-      - name: busybox
-        image: ubuntu:22.04
-        imagePullPolicy: IfNotPresent
-        command: ["/bin/bash", "-c", "while true; do echo 'hello in loop'; sleep 10;done"]
-```
+We can use the annotation `controller.kubernetes.io/pod-deletion-cost` to manage the pod deletion order. Pod with lower deletion cost will be deleted first.
 
 NOTICE: By default, a pod is not ready is always deleted before the ready pods, regardless of its pod deletion cost.
 
-Show pods are started.
+Create a replica set by applying the `deployment.yaml` file in `3_3` directory.
 
-```
-```
-
-Update the `controller.kubernetes.io/pod-deletion-cost` for each pod to different number.
+Update the `controller.kubernetes.io/pod-deletion-cost` for each pod to a different number.
 
 ```shell
-kubectl annotate pod -n busybox-ns busybox-6f54b5cbff-7kq6j controller.kubernetes.io/pod-deletion-cost=10
+$ kubectl annotate pod --overwrite -n busybox-ns busybox-deploy-1-7c7c67959c-9h76p controller.kubernetes.io/pod-deletion-cost=70
+pod/busybox-deploy-1-7c7c67959c-9h76p annotated
+$ kubectl annotate pod --overwrite -n busybox-ns busybox-deploy-1-7c7c67959c-sr26b controller.kubernetes.io/pod-deletion-cost=10
+pod/busybox-deploy-1-7c7c67959c-sr26b annotated
+$ kubectl annotate pod --overwrite -n busybox-ns busybox-deploy-1-7c7c67959c-tghmx controller.kubernetes.io/pod-deletion-cost=100
+pod/busybox-deploy-1-7c7c67959c-tghmx annotated
+$ kubectl annotate pod --overwrite -n busybox-ns busybox-deploy-1-7c7c67959c-tmwlx controller.kubernetes.io/pod-deletion-cost=50
+pod/busybox-deploy-1-7c7c67959c-tmwlx annotated
+```
+
+Then if you `kubectl describe` the pod, it will show the latest`pod-deletion-cost` annotation.
+
+```shell
+$ kubectl describe pod busybox-ns busybox-deploy-1-7c7c67959c-9h76p -n busybox-ns
+Name:                 busybox-deploy-1-7c7c67959c-9h76p
+Namespace:            busybox-ns
+Priority:             100000
+Priority Class Name:  spinq-critical
+Node:                 izwz9brbcf157u3s0rr0p0z/192.168.1.249
+Start Time:           Fri, 19 Sep 2025 00:57:04 +0800
+Labels:               app=busybox-app-1
+                      pod-template-hash=7c7c67959c
+Annotations:          cni.projectcalico.org/containerID: 85d5b272092a86dc3a0c5be59f590abeb58f2567dbd9108464612baf8ccaf2e2
+                      cni.projectcalico.org/podIP: 172.16.220.123/32
+                      cni.projectcalico.org/podIPs: 172.16.220.123/32
+                      controller.kubernetes.io/pod-deletion-cost: 70
+Status:               Running
+......
+```
+
+Then we scale down the deployment one pod at a time. The pod with the lowest deletion cost will always be deleted first.
+
+```shell
+$ kubectl scale deployment busybox-deploy-1 --replicas=3 -n busybox-ns
+deployment.apps/busybox-deploy-1 scaled
+$ kubectl get pods -n busybox-ns
+NAME                                READY   STATUS        RESTARTS   AGE
+busybox-deploy-1-7c7c67959c-9h76p   1/1     Running       0          7m29s
+busybox-deploy-1-7c7c67959c-sr26b   1/1     Terminating   0          7m29s
+busybox-deploy-1-7c7c67959c-tghmx   1/1     Running       0          7m31s
+busybox-deploy-1-7c7c67959c-tmwlx   1/1     Running       0          7m31s
+$ kubectl scale deployment busybox-deploy-1 --replicas=2 -n busybox-ns
+deployment.apps/busybox-deploy-1 scaled
+$ kubectl get pods -n busybox-ns
+NAME                                READY   STATUS        RESTARTS   AGE
+busybox-deploy-1-7c7c67959c-9h76p   1/1     Running       0          8m14s
+busybox-deploy-1-7c7c67959c-tghmx   1/1     Running       0          8m16s
+busybox-deploy-1-7c7c67959c-tmwlx   1/1     Terminating   0          8m16s
+$ kubectl scale deployment busybox-deploy-1 --replicas=1 -n busybox-ns
+deployment.apps/busybox-deploy-1 scaled
+$ kubectl get pods -n busybox-ns
+NAME                                READY   STATUS        RESTARTS   AGE
+busybox-deploy-1-7c7c67959c-9h76p   1/1     Terminating   0          8m35s
+busybox-deploy-1-7c7c67959c-tghmx   1/1     Running       0          8m37s
 ```
 
 ### 3.4 Priority
 
-An updated flask script with these new configurations is included in the directory.
+We use `priority` to control the order and preemption behavior while pod scheduling. Higher priority pods can preempt (evict) lower priority pods when available resources is not enough during scheduling,
+
+`Priority` does not guarantee the pods will be scheduled.
+
+`Priority` does not influence the pod deletion order.

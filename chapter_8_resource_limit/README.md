@@ -50,12 +50,6 @@ $ curl -X POST 'http://112.74.60.37:30050/run' --header 'Content-Type: applicati
 {"current_queue_size": 1, "msg": "Pod flask-pod starts processing task = task2", "pod_name": "flask-pod", "status": 200}
 ```
 
-Add python date log
-
-```
-
-```
-
 And if you check logs of the pod, you will see something like this:
 
 ```shell
