@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox-deploy-1
+  namespace: busybox-ns
+  labels:
+    app: busybox-app-1
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: busybox-app-1
+  template:
+    metadata:
+      labels:
+        app: busybox-app-1
+    spec:
+      priorityClassName: low
+      containers:
+      - name: busybox
+        image: ubuntu:22.04
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: "3G"
+        command: ["/bin/bash", "-c", "while true; do echo 'hello in loop'; sleep 10;done"]
