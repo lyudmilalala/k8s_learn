@@ -1,8 +1,10 @@
-## 10. Job
+## 6. Job
 
 A job is a one-time task running on a pod in the k8s cluster. If a job failed, k8s can retry it automatically, until success or achieving the maximum retry times.
 
-We first create a simple job image. Functions are written in `job.py`. We define the script in the way that it has 20% chance to fail.
+### 6.1 Run a simple job
+
+We write a simple function in `job.py`. We define the script in the way that it has 20% chance to fail.
 
 Then we build and upload the image.
 
@@ -25,6 +27,8 @@ Here are the definitions of some configuration parameters.
 - `spec.activeDeadlineSeconds`: Specifies the duration in seconds that the job keeps running before the system will actively try to terminate it.
 - `spec.backoffLimit`: 3 Specifies the number of retries after failure. Default is 6.
 - `spec.template.spec.restartPolicy`: Specifies whether to restart a Pod. Can be `OnFailure`, `Never`, and `Always`.
+
+### 6.2 Trigger a job by program
 
 ### Authorization
 

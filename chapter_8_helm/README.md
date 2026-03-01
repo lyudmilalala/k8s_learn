@@ -1,4 +1,4 @@
-## 5. Helm
+## 8. Helm
 
 [Official docs](https://helm.sh/docs/)
 
@@ -14,7 +14,7 @@ Helm is a Kubernetes package manager. It facilitates the deployment and manageme
 - `Release`: an instance of running charts. A single chart can be mapped to multiple releases due to varied configurations. 
 - `Repository`: a collection of charts that can be shared and stored.
 
-### 5.1 Install Helm
+### 8.1 Install Helm
 
 ```shell
 $ curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
@@ -25,7 +25,7 @@ $ sudo apt-get update
 $ sudo apt-get install helm
 ```
 
-### 5.2 Install a helm release
+### 8.2 Install a helm release
 
 Before installing, we first need to ensure that our helm knows the repository where our desired resource is. To add a repository for helm to search for resources, use
 
@@ -66,7 +66,7 @@ $ helm install loki-stack grafana/loki-stack -n loki-logging --create-namespace 
 
 Here we first add the repository of Grafana. Then we update the repository to see all latest charts. Finally, we deploy the `grafana/loki-stack` chart to a local release named `loki-stack`, with customized parameters in local file `loki-local-values.yaml`.
 
-### 5.3 Custommize the configuration of a helm release
+### 8.3 Custommize the configuration of a helm release
 
 Use the below command to save the default values of the helm chart in a YAML file.
 
@@ -76,7 +76,7 @@ helm show values grafana/loki-stack > loki-local-values.yaml
 
 You can then modify this configuration file to fit your requirements, and use it when installing a new release with the `--values` parameter.
 
-### 5.4 Switch to another helm repository
+### 8.4 Switch to another helm repository
 
 Because of the GFW, sometimes it would be hard to pull resouces from the github or google repositories. Here are some alternative choices. You can add them to your repository list.
 
@@ -100,7 +100,7 @@ $ helm uninstall redis-cluster
 
 But be careful, charts from these repositories may have serious dependency problems.
 
-### 5.5 List all helm release in the current Kubernetes cluster
+### 8.5 List all helm release in the current Kubernetes cluster
 
 `helm list -n <release-ns>` or `helm ls -n <release-ns>` list the deployed releases in this k8s cluster for us. 
 
@@ -114,7 +114,7 @@ NAME            NAMESPACE       REVISION        UPDATED                         
 loki-stack      loki-logging    1               2024-12-21 17:47:33.469280818 +0800 CST deployed        loki-stack-2.9.11   v2.6.1 
 ```
 
-### 5.6 Upgrade and rollback a helm release
+### 8.6 Upgrade and rollback a helm release
 
 After detecting the updates of a chart, you can updating your existing release.
 
@@ -138,13 +138,13 @@ And if something breaks with the new chart, you can rollback your release by
 helm rollback <release-name> <revision> -n <release-ns>
 ```
 
-### 5.7 Uninstall a helm release
+### 8.7 Uninstall a helm release
 
 ```shell
 helm uninstall <release-name> -n <release-ns>
 ```
 
-### 5.8 Create a helm chart by yourself
+### 8.8 Create a helm chart by yourself
 
 We can first create a framework of a chart by
 
@@ -250,7 +250,7 @@ curl -X POST 'http://112.74.104.158:30050/sum' --header 'Content-Type: applicati
 {"msg": "[Jerry-learning2-chart-demo-my-first-chart-7944c59f8c-5ntvj] sum = 22", "status": 200}
 ```
 
-### 5.9 Push your helm chart to Artifacthub
+### 8.9 Push your helm chart to Artifacthub
 
 To publish your helm chart on Artifacthub, you need to first publish it as a git repository. You can use either GitHub or GitLab to approach this target. After then, sharing your repository url with Artifacthub will make things work. You can find further detail in [this post](https://www.devopsschool.com/blog/helm-tutorial-how-to-publish-chart-at-artifacthub/).
 
